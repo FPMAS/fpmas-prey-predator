@@ -8,7 +8,8 @@ FPMAS_DEFINE_GROUPS(MOVE, EAT, REPRODUCE, DIE, DEAD)
 
 using namespace fpmas::model;
 
-typedef VonNeumannGrid GridType;
+class Grass;
+typedef VonNeumannGrid<Grass> GridType;
 
 namespace api {
 	class PreyPredator {
@@ -20,11 +21,42 @@ namespace api {
 	};
 }
 
+class Grass : public fpmas::model::GridCellBase<Grass> {
+	public:
+		static const int growing_rate = 8;
+		bool grown = true;
+	private:
+		int grow_count_down = growing_rate;
+
+		void grow() {
+			if(!grown) {
+				grow_count_down--;
+				if(grow_count_down < 0)
+					grow_count_down = growing_rate;
+				grown = true;
+			}
+		};
+	public:
+		using fpmas::model::GridCellBase<Grass>::GridCellBase;
+
+		static void to_json(nlohmann::json& j, const Grass* grass) {
+			j[0] = grass->grown;
+			j[1] = grass->grow_count_down;
+		};
+
+		static Grass* from_json(const nlohmann::json& j) {
+			Grass* grass = new Grass;
+			grass->grown = j.at(0).get<int>();
+			grass->grow_count_down = j.at(0).get<int>();
+			return grass;
+		}
+};
+
 template<typename AgentType>
-class PreyPredator : public api::PreyPredator, public GridAgent<AgentType> {
+class PreyPredator : public api::PreyPredator, public GridAgent<AgentType, Grass> {
 	protected:
 		static const VonNeumannRange<GridType> range;
-		PreyPredator() : GridAgent<AgentType>(this->range, this->range) {}
+		PreyPredator() : GridAgent<AgentType, Grass>(this->range, this->range) {}
 
 	private:
 		fpmas::random::DistributedGenerator<> rd;
@@ -76,8 +108,18 @@ class Prey : public PreyPredator<Prey> {
 		static const float reproduction_rate;
 		static const int initial_energy;
 		static const int move_cost;
+		static const int energy_gain;
 
-		void eat() override {};
+		void eat() override {
+			Grass* cell = this->locationCell();
+			std::cout << "[prey " << this->node()->getId() << "] eats " << cell->node()->getId() << "(" << cell->node()->state() << ")" << std::endl;
+			fpmas::model::AcquireGuard acquire(cell);
+
+			if(cell->grown) {
+				cell->grown = false;
+				energy+=energy_gain;
+			}
+		};
 
 		static void to_json(nlohmann::json& j, const Prey* prey) {
 			PreyPredator::to_json(j, prey);
@@ -91,15 +133,16 @@ class Prey : public PreyPredator<Prey> {
 const float Prey::reproduction_rate = .5;
 const int Prey::initial_energy = 4;
 const int Prey::move_cost = 1;
+const int Prey::energy_gain = 4;
 
 class Predator : public PreyPredator<Predator> {
 	public:
 		static const float reproduction_rate;
 		static const int initial_energy;
 		static const int move_cost;
+		static const int energy_gain;
 
 		void eat() override {
-			if(alive) {
 			auto preys = this->perceptions<Prey>();
 			if(preys.count() > 0) {
 				auto prey = preys.random();
@@ -107,10 +150,9 @@ class Predator : public PreyPredator<Predator> {
 
 				if(prey->alive) {
 					std::cout << this->node()->getId() << " eats " << prey->node()->getId() << "(" << prey->node()->state() << ")" << std::endl;
-					energy++;
+					energy+=energy_gain;
 					prey->alive=false;
 				}
-			}
 			}
 		};
 
@@ -126,3 +168,4 @@ class Predator : public PreyPredator<Predator> {
 const float Predator::reproduction_rate = .4;
 const int Predator::initial_energy = 20;
 const int Predator::move_cost = 1;
+const int Predator::energy_gain = 20;

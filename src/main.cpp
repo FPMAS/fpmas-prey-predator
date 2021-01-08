@@ -9,19 +9,20 @@ int grid_width = 100;
 int grid_height = 100;
 int num_prey = 300;
 int num_predator = 150;
-int num_steps = 100;
+int num_steps = 200;
 
-FPMAS_JSON_SET_UP(GridCell::JsonBase, Prey::JsonBase, Predator::JsonBase)
+FPMAS_JSON_SET_UP(GridCell::JsonBase, Prey::JsonBase, Predator::JsonBase, Grass::JsonBase)
 
 
 int main(int argc, char** argv) {
-	FPMAS_REGISTER_AGENT_TYPES(GridCell::JsonBase, Prey::JsonBase, Predator::JsonBase);
+	FPMAS_REGISTER_AGENT_TYPES(GridCell::JsonBase, Prey::JsonBase, Predator::JsonBase, Grass::JsonBase);
 
 	fpmas::init(argc, argv);
 	{
 		// Defines model and environment
-		GridModel<fpmas::synchro::HardSyncMode> model;
-		GridType::Builder grid(grid_width, grid_height);
+		GridModel<fpmas::synchro::HardSyncMode, Grass> model;
+		fpmas::model::GridCellFactory<Grass> cell_factory;
+		GridType::Builder grid(cell_factory, grid_width, grid_height);
 
 		// Builds a distributed grid
 		grid.build(model);
@@ -47,7 +48,7 @@ int main(int argc, char** argv) {
 		model.buildGroup(DEAD);
 
 		// Distributed Agent Builder
-		GridAgentBuilder agent_builder;
+		GridAgentBuilder<Grass> agent_builder;
 
 		// Initializes preys (distributed process)
 		DefaultSpatialAgentFactory<Prey> prey_factory;
