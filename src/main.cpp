@@ -37,7 +37,7 @@ void load_static_config(std::string config_file) {
 int main(int argc, char** argv) {
 	FPMAS_REGISTER_AGENT_TYPES(GridCell::JsonBase, Prey::JsonBase, Predator::JsonBase, Grass::JsonBase);
 
-	if(argc == 0)
+	if(argc == 1)
 		load_static_config("config.yml");
 	else
 		load_static_config(argv[1]);
