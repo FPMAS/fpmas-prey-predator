@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 project(fpmas-prey-predator)
 
-find_package(fpmas 1.0 REQUIRED)
+find_package(fpmas 1.1 REQUIRED)
 add_subdirectory(yaml-cpp)
 
 set(CMAKE_CXX_FLAGS_DEBUG
