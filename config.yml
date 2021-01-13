@@ -1,0 +1,23 @@
+Grid:
+    width: 100
+    height: 100
+
+ModelConfig:
+    num_steps: 50
+    num_preys: 50
+    num_predators: 20
+
+Prey:
+    initial_energy: 4
+    move_cost: 1
+    energy_gain: 4
+    reproduction_rate: 0.05
+
+Predator:
+    initial_energy: 20
+    move_cost: 1
+    energy_gain: 20
+    reproduction_rate: 0.04
+
+Grass:
+    growing_rate: 8

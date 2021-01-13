@@ -2,6 +2,31 @@
 #include "prey_predator.h"
 #include <fstream>
 
+#define PP_PRINT_CONFIG(CLASS, PARAM) \
+	std::cout << "\t- " #CLASS "::" #PARAM ": " << CLASS::PARAM << std::endl;
+
+void print_current_config() {
+	std::cout << "Running PreyPredator model with the following configuration:" << std::endl;
+
+	PP_PRINT_CONFIG(ModelConfig, num_steps);
+	PP_PRINT_CONFIG(ModelConfig, num_preys);
+	PP_PRINT_CONFIG(ModelConfig, num_predators);
+
+	PP_PRINT_CONFIG(Grid, width);
+	PP_PRINT_CONFIG(Grid, height);
+
+	PP_PRINT_CONFIG(Grass, growing_rate);
+
+	PP_PRINT_CONFIG(Prey, reproduction_rate);
+	PP_PRINT_CONFIG(Prey, initial_energy);
+	PP_PRINT_CONFIG(Prey, move_cost);
+	PP_PRINT_CONFIG(Prey, energy_gain);
+
+	PP_PRINT_CONFIG(Predator, reproduction_rate);
+	PP_PRINT_CONFIG(Predator, initial_energy);
+	PP_PRINT_CONFIG(Predator, move_cost);
+	PP_PRINT_CONFIG(Predator, energy_gain);
+}
 class Output : public fpmas::api::scheduler::Task {
 	private:
 		fpmas::api::runtime::Runtime& runtime;

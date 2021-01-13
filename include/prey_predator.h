@@ -8,6 +8,17 @@ FPMAS_DEFINE_GROUPS(MOVE, EAT, REPRODUCE, DIE, DEAD, GROW)
 
 using namespace fpmas::model;
 
+namespace Grid {
+	static int width = 100;
+	static int height = 100;
+};
+
+namespace ModelConfig {
+	static int num_steps = 100;
+	static int num_preys = 20;
+	static int num_predators = 20;
+};
+
 class Grass;
 typedef VonNeumannGrid<Grass> GridType;
 
@@ -28,12 +39,32 @@ namespace api {
 
 class Grass : public fpmas::model::GridCellBase<Grass> {
 	public:
-		static const int growing_rate = 8;
+		static int growing_rate;
 		bool grown = true;
 	private:
 		int grow_count_down = growing_rate;
 
+		/**
+		 * Base Grass constructor.
+		 *
+		 * Initializes only `growing_rate`, `grown` and `grow_count_down` fields:
+		 * GridCellBase specified fields, such as the cell location, are left
+		 * undefined and must be initialized afterwards. This is automatically
+		 * handled by the JSON serialization process, what allows this
+		 * constructor to be safely used in the to_json() method below.
+		 */
+		Grass(bool grown, int grow_count_down)
+			: grown(grown), grow_count_down(grow_count_down) {}
+
 	public:
+		/**
+		 * Uses GridCellBase(fpmas::api::model::DiscretePoint location)
+		 * constructor to initialize the Grass cell location.
+		 * The Grass is initialized `grown`.
+		 *
+		 * This constructor is intended to be used in an
+		 * fpmas::api::model::GridCellFactory to generate Grass cells.
+		 */
 		using fpmas::model::GridCellBase<Grass>::GridCellBase;
 
 		void grow() {
@@ -52,12 +83,14 @@ class Grass : public fpmas::model::GridCellBase<Grass> {
 		};
 
 		static Grass* from_json(const nlohmann::json& j) {
-			Grass* grass = new Grass;
-			grass->grown = j.at(0).get<int>();
-			grass->grow_count_down = j.at(0).get<int>();
+			Grass* grass = new Grass(
+					j.at(0).get<bool>(),
+					j.at(1).get<int>()
+					);
 			return grass;
 		}
 };
+int Grass::growing_rate = 8;
 
 static fpmas::random::DistributedGenerator<> rd;
 
@@ -123,10 +156,10 @@ const VonNeumannRange<GridType> PreyPredator<AgentType>::range(1);
 class Prey : public PreyPredator<Prey> {
 	public:
 		static const PPType agent_type = PREY;
-		static const float reproduction_rate;
-		static const int initial_energy;
-		static const int move_cost;
-		static const int energy_gain;
+		static float reproduction_rate;
+		static int initial_energy;
+		static int move_cost;
+		static int energy_gain;
 
 		void eat() override {
 			Grass* cell = this->locationCell();
@@ -148,18 +181,18 @@ class Prey : public PreyPredator<Prey> {
 			return prey;
 		}
 };
-const float Prey::reproduction_rate = .05;
-const int Prey::initial_energy = 4;
-const int Prey::move_cost = 1;
-const int Prey::energy_gain = 4;
+float Prey::reproduction_rate = .05;
+int Prey::initial_energy = 4;
+int Prey::move_cost = 1;
+int Prey::energy_gain = 4;
 
 class Predator : public PreyPredator<Predator> {
 	public:
 		static const PPType agent_type = PREDATOR;
-		static const float reproduction_rate;
-		static const int initial_energy;
-		static const int move_cost;
-		static const int energy_gain;
+		static float reproduction_rate;
+		static int initial_energy;
+		static int move_cost;
+		static int energy_gain;
 
 		void eat() override {
 			auto preys = this->perceptions<Prey>();
@@ -184,7 +217,7 @@ class Predator : public PreyPredator<Predator> {
 			return predator;
 		}
 };
-const float Predator::reproduction_rate = .04;
-const int Predator::initial_energy = 20;
-const int Predator::move_cost = 1;
-const int Predator::energy_gain = 20;
+float Predator::reproduction_rate = .04;
+int Predator::initial_energy = 20;
+int Predator::move_cost = 1;
+int Predator::energy_gain = 20;
