@@ -10,10 +10,18 @@ set(CMAKE_CXX_FLAGS_DEBUG
 	-Wall -Wextra -Wpedantic")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall")
 
+add_library(fpmas-prey-predator-lib
+	src/prey_predator.cpp
+	)
 add_executable(fpmas-prey-predator
-	src/main.cpp)
+	src/main.cpp
+	)
+
 include_directories(include)
 
-target_link_libraries(fpmas-prey-predator fpmas::fpmas yaml-cpp::yaml-cpp)
+target_link_libraries(fpmas-prey-predator-lib fpmas::fpmas yaml-cpp::yaml-cpp)
+target_link_libraries(fpmas-prey-predator fpmas-prey-predator-lib)
+
+add_subdirectory(tests)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS YES)

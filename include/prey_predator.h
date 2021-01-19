@@ -1,3 +1,6 @@
+#ifndef FPMAS_PREY_PREDATOR_H
+#define FPMAS_PREY_PREDATOR_H
+
 #include "fpmas/model/spatial/von_neumann.h"
 #include "fpmas/random/random.h"
 #include "fpmas/model/guards.h"
@@ -9,15 +12,15 @@ FPMAS_DEFINE_GROUPS(MOVE, EAT, REPRODUCE, DIE, DEAD, GROW)
 using namespace fpmas::model;
 
 namespace Grid {
-	static int width = 100;
-	static int height = 100;
-};
+	extern int width;
+	extern int height;
+}
 
 namespace ModelConfig {
-	static int num_steps = 100;
-	static int num_preys = 20;
-	static int num_predators = 20;
-};
+	extern int num_steps;
+	extern int num_preys;
+	extern int num_predators;
+}
 
 class Grass;
 typedef VonNeumannGrid<Grass> GridType;
@@ -41,9 +44,9 @@ class Grass : public fpmas::model::GridCellBase<Grass> {
 	public:
 		static int growing_rate;
 		bool grown = true;
-	private:
 		int grow_count_down = growing_rate;
 
+	private:
 		/**
 		 * Base Grass constructor.
 		 *
@@ -71,9 +74,10 @@ class Grass : public fpmas::model::GridCellBase<Grass> {
 			if(!grown) {
 			//std::cout << "growing grass " << this->node()->getId() << std::endl;
 				grow_count_down--;
-				if(grow_count_down < 0)
+				if(grow_count_down == 0) {
 					grow_count_down = growing_rate;
-				grown = true;
+					grown = true;
+				}
 			}
 		};
 
@@ -90,7 +94,6 @@ class Grass : public fpmas::model::GridCellBase<Grass> {
 			return grass;
 		}
 };
-int Grass::growing_rate = 8;
 
 static fpmas::random::DistributedGenerator<> rd;
 
@@ -181,10 +184,6 @@ class Prey : public PreyPredator<Prey> {
 			return prey;
 		}
 };
-float Prey::reproduction_rate = .05;
-int Prey::initial_energy = 4;
-int Prey::move_cost = 1;
-int Prey::energy_gain = 4;
 
 class Predator : public PreyPredator<Predator> {
 	public:
@@ -217,7 +216,4 @@ class Predator : public PreyPredator<Predator> {
 			return predator;
 		}
 };
-float Predator::reproduction_rate = .04;
-int Predator::initial_energy = 20;
-int Predator::move_cost = 1;
-int Predator::energy_gain = 20;
+#endif

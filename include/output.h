@@ -1,3 +1,6 @@
+#ifndef FPMAS_PREY_PREDATOR_OUTPUT_H
+#define FPMAS_PREY_PREDATOR_OUTPUT_H
+
 #include "fpmas.h"
 #include "prey_predator.h"
 #include <fstream>
@@ -78,3 +81,4 @@ class Output : public fpmas::api::scheduler::Task {
 			}
 		}
 };
+#endif
