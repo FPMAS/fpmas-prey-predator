@@ -12,6 +12,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall")
 
 add_library(fpmas-prey-predator-lib
 	src/prey_predator.cpp
+	src/output.cpp
 	)
 add_executable(fpmas-prey-predator
 	src/main.cpp

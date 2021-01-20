@@ -93,7 +93,7 @@ int main(int argc, char** argv) {
 		UniformGridAgentMapping predator_mapping(Grid::width, Grid::height, ModelConfig::num_predators);
 		agent_builder.build(model, {move, eat, reproduce, die}, predator_factory, predator_mapping);
 
-		Output output_task(model.runtime(), grow, move);
+		ModelOutput output_task(model.runtime(), grow, move);
 		fpmas::scheduler::Job output_job({output_task});
 		// Schedules agent execution
 		model.scheduler().schedule(0, 20, model.loadBalancingJob());
