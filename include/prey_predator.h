@@ -70,6 +70,8 @@ class Grass : public fpmas::model::GridCellBase<Grass> {
 		 */
 		using fpmas::model::GridCellBase<Grass>::GridCellBase;
 
+		Grass() : fpmas::model::GridCellBase<Grass>::GridCellBase() {}
+
 		void grow() {
 			if(!grown) {
 			//std::cout << "growing grass " << this->node()->getId() << std::endl;
