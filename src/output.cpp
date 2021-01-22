@@ -6,6 +6,8 @@ void print_current_config() {
 	PP_PRINT_CONFIG(ModelConfig, num_steps);
 	PP_PRINT_CONFIG(ModelConfig, num_preys);
 	PP_PRINT_CONFIG(ModelConfig, num_predators);
+	PP_PRINT_CONFIG(ModelConfig, model_output_file);
+	PP_PRINT_CONFIG(ModelConfig, graph_output_file);
 
 	PP_PRINT_CONFIG(Grid, width);
 	PP_PRINT_CONFIG(Grid, height);
@@ -23,34 +25,56 @@ void print_current_config() {
 	PP_PRINT_CONFIG(Predator, energy_gain);
 }
 
-void ModelOutput::run() {
+ModelOutput::ModelOutput(
+		fpmas::api::model::Model& model,
+		fpmas::api::model::AgentGroup& grow,
+		fpmas::api::model::AgentGroup& move)
+	: FileOutput(ModelConfig::model_output_file), DistributedCsvOutput(
+			model.getMpiCommunicator(), 0, this->output_file,
+			{"time", [&model] () {return model.runtime().currentDate();}},
+			{"grass", [&grow] () {
 			std::size_t num_grass = 0;
-			std::size_t num_prey = 0;
-			std::size_t num_predator = 0;
-
-			for(auto agent : grass_group.localAgents())
+			for(auto agent : grow.localAgents())
 				if(dynamic_cast<Grass*>(agent)->grown)
 					num_grass++;
+			return num_grass;
+			}},
+			{"prey", [&move] () {
+			std::size_t num_prey = 0;
+			for(auto agent : move.localAgents())
+				if(dynamic_cast<Prey*>(agent))
+					num_prey++;
+			return num_prey;
+			}},
+			{"predator", [&move] () {
+			std::size_t num_predator = 0;
+			for(auto agent : move.localAgents())
+				if(dynamic_cast<Predator*>(agent))
+					num_predator++;
+			return num_predator;
+			}}) {}
 
-			for(auto agent : prey_predator_group.agents())
-				switch(dynamic_cast<api::PreyPredator*>(agent)->type()) {
-					case PREY:
-						num_prey++;
-						break;
-					case PREDATOR:
-						num_predator++;
-						break;
-				}
+std::string GraphOutput::file_name(fpmas::api::communication::MpiCommunicator& comm) {
+	std::size_t replace = ModelConfig::graph_output_file.find('*');
+	std::string filename = ModelConfig::graph_output_file;
+	filename.replace(
+			replace, 1, std::to_string(comm.getRank()));
+	return filename;
+}
 
-			std::vector<std::size_t> num_grass_vec = mpi.gather(num_grass, 0);
-			std::vector<std::size_t> num_prey_vec = mpi.gather(num_prey, 0);
-			std::vector<std::size_t> num_predator_vec = mpi.gather(num_predator, 0);
+GraphOutput::GraphOutput(fpmas::api::model::Model& model)
+	: FileOutput(file_name(model.getMpiCommunicator())), DistributedCsvOutput(
+			model.getMpiCommunicator(), this->output_file,
+			{"time", [&model] () {return model.runtime().currentDate();}},
+			{"local_nodes", [&model] () {return model.graph().getNodes().size();}},
+			{"local_edges", [&model] () {return model.graph().getEdges().size();}},
+			{"total_nodes", [&model] () {return model.graph().getLocationManager().getLocalNodes().size();}},
+			{"total_edges", [&model] () {
+			std::size_t num_edges = 0;
+			for(auto node : model.graph().getLocationManager().getLocalNodes())
+				num_edges += node.second->getOutgoingEdges().size();
+			return num_edges;
+			}}
+			) {}
 
-			FPMAS_ON_PROC(fpmas::communication::WORLD, 0) {
-				num_grass = std::accumulate(num_grass_vec.begin(), num_grass_vec.end(), 0);
-				num_prey = std::accumulate(num_prey_vec.begin(), num_prey_vec.end(), 0);
-				num_predator = std::accumulate(num_predator_vec.begin(), num_predator_vec.end(), 0);
 
-				output << runtime.currentDate() << "," << num_grass << "," << num_prey << "," << num_predator << std::endl;
-			}
-		}

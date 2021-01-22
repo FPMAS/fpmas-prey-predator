@@ -22,6 +22,8 @@ void load_static_config(std::string config_file) {
 	FPMAS_LOAD_FROM_YML(config, ModelConfig, num_steps);
 	FPMAS_LOAD_FROM_YML(config, ModelConfig, num_preys);
 	FPMAS_LOAD_FROM_YML(config, ModelConfig, num_predators);
+	FPMAS_LOAD_FROM_YML(config, ModelConfig, model_output_file);
+	FPMAS_LOAD_FROM_YML(config, ModelConfig, graph_output_file);
 
 	FPMAS_LOAD_FROM_YML(config, Prey, reproduction_rate);
 	FPMAS_LOAD_FROM_YML(config, Prey, initial_energy);
@@ -93,8 +95,10 @@ int main(int argc, char** argv) {
 		UniformGridAgentMapping predator_mapping(Grid::width, Grid::height, ModelConfig::num_predators);
 		agent_builder.build(model, {move, eat, reproduce, die}, predator_factory, predator_mapping);
 
-		ModelOutput output_task(model.runtime(), grow, move);
-		fpmas::scheduler::Job output_job({output_task});
+		// Model output specification
+		ModelOutput model_output(model, grow, move);
+		GraphOutput graph_output(model);
+		
 		// Schedules agent execution
 		model.scheduler().schedule(0, 20, model.loadBalancingJob());
 		model.scheduler().schedule(0.1, 1, grow.jobs());
@@ -102,7 +106,8 @@ int main(int argc, char** argv) {
 		model.scheduler().schedule(0.3, 1, eat.jobs());
 		model.scheduler().schedule(0.4, 1, reproduce.jobs());
 		model.scheduler().schedule(0.5, 1, die.jobs());
-		model.scheduler().schedule(0.6, 1, output_job);
+		model.scheduler().schedule(0.6, 1, model_output.job());
+		model.scheduler().schedule(0.6, 1, graph_output.job());
 
 		// Runs the simulation
 		model.runtime().run(ModelConfig::num_steps);

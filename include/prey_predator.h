@@ -20,6 +20,8 @@ namespace ModelConfig {
 	extern int num_steps;
 	extern int num_preys;
 	extern int num_predators;
+	extern std::string model_output_file;
+	extern std::string graph_output_file;
 }
 
 class Grass;

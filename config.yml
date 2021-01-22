@@ -6,6 +6,8 @@ ModelConfig:
     num_steps: 50
     num_preys: 50
     num_predators: 20
+    model_output_file: model.csv
+    graph_output_file: graph.*.csv
 
 Prey:
     initial_energy: 4

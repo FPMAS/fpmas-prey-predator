@@ -18,3 +18,7 @@ int Grid::height = 100;
 int ModelConfig::num_steps = 100;
 int ModelConfig::num_preys = 100;
 int ModelConfig::num_predators = 20;
+
+std::string ModelConfig::model_output_file = "model.csv";
+std::string ModelConfig::graph_output_file = "graph.*.csv";
+

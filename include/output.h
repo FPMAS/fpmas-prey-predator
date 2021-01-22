@@ -10,25 +10,35 @@
 
 void print_current_config();
 
-class ModelOutput : public fpmas::api::scheduler::Task {
-	private:
-		fpmas::api::runtime::Runtime& runtime;
-		fpmas::api::model::AgentGroup& grass_group;
-		fpmas::api::model::AgentGroup& prey_predator_group;
-		fpmas::communication::TypedMpi<std::size_t> mpi;
-		std::ofstream output {"out.csv"};
+using namespace fpmas::output;
 
-	public:
-		ModelOutput(
-				fpmas::api::runtime::Runtime& runtime,
-				fpmas::api::model::AgentGroup& grass_group,
-				fpmas::api::model::AgentGroup& prey_predator_group)
-			: runtime(runtime), grass_group(grass_group), prey_predator_group(prey_predator_group), mpi(fpmas::communication::WORLD) {
-				FPMAS_ON_PROC(fpmas::communication::WORLD, 0)
-					output << "time,grass,prey,predator" << std::endl;
-
-			}
-
-		void run() override;
+class FileOutput {
+	protected:
+		std::ofstream output_file;
+		FileOutput(std::string filename)
+			: output_file(filename) {}
 };
+
+class ModelOutput :
+	public FileOutput,
+	public DistributedCsvOutput<
+	Local<fpmas::api::runtime::Date>, Reduce<std::size_t>, Reduce<std::size_t>, Reduce<std::size_t>> {
+		public:
+			ModelOutput(
+					fpmas::api::model::Model& model,
+					fpmas::api::model::AgentGroup& grow,
+					fpmas::api::model::AgentGroup& move);
+	};
+
+class GraphOutput :
+	public FileOutput,
+	public DistributedCsvOutput<
+	Local<fpmas::api::runtime::Date>, Local<std::size_t>, Local<std::size_t>, Reduce<std::size_t>, Reduce<std::size_t>> {
+		private:
+			std::string file_name(fpmas::api::communication::MpiCommunicator& comm);
+
+		public:
+			GraphOutput(fpmas::api::model::Model& model);
+	};
+
 #endif
