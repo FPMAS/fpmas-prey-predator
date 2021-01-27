@@ -74,8 +74,6 @@ class PreyPredatorTest : public Test {
 			model.buildGroup(DIE, die_behavior)};
 		fpmas::api::model::AgentGroup& eat_group {
 			model.buildGroup(EAT, eat_behavior)};
-		fpmas::api::model::AgentGroup& dead_group {
-			model.buildGroup(DEAD)};
 		// Builds a simple 5x5 grid
 		std::vector<Grass*> cells = grid.build(model);
 
@@ -130,6 +128,7 @@ TEST_F(PreyPredatorBaseTest, reproduce) {
 
 	ASSERT_THAT(move_group.localAgents(), SizeIs(2));
 	ASSERT_THAT(reproduce_group.localAgents(), SizeIs(2));
+	ASSERT_THAT(eat_group.localAgents(), SizeIs(2));
 	ASSERT_THAT(die_group.localAgents(), SizeIs(2));
 
 	auto agents = move_group.localAgents();
@@ -150,6 +149,7 @@ TEST_F(PreyPredatorBaseTest, no_reproduce) {
 
 	ASSERT_THAT(move_group.localAgents(), SizeIs(1));
 	ASSERT_THAT(reproduce_group.localAgents(), SizeIs(1));
+	ASSERT_THAT(eat_group.localAgents(), SizeIs(1));
 	ASSERT_THAT(die_group.localAgents(), SizeIs(1));
 }
 
@@ -163,9 +163,10 @@ TEST_F(PreyPredatorBaseTest, die) {
 	mock_prey_predator->energy -= 2*MockPreyPredator::move_cost;
 
 	model.runtime().execute(die_group.jobs());
-	ASSERT_EQ(mock_prey_predator->alive, false);
-	ASSERT_THAT(mock_prey_predator->groupIds(), ElementsAre(DEAD));
-	ASSERT_THAT(dead_group.localAgents(), ElementsAre(mock_prey_predator));
+	ASSERT_THAT(move_group.localAgents(), IsEmpty());
+	ASSERT_THAT(reproduce_group.localAgents(), IsEmpty());
+	ASSERT_THAT(eat_group.localAgents(), IsEmpty());
+	ASSERT_THAT(die_group.localAgents(), IsEmpty());
 }
 
 class PreyTest : public PreyPredatorTest {

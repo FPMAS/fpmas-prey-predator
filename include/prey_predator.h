@@ -7,7 +7,7 @@
 
 #include <algorithm>
 
-FPMAS_DEFINE_GROUPS(MOVE, EAT, REPRODUCE, DIE, DEAD, GROW)
+FPMAS_DEFINE_GROUPS(MOVE, EAT, REPRODUCE, DIE, GROW)
 
 using namespace fpmas::model;
 
@@ -140,7 +140,6 @@ class PreyPredator : public api::PreyPredator, public GridAgent<AgentType, Grass
 			if(!alive) {
 				//std::cout << this->node()->getId() << " dies" << std::endl;
 				auto groups = this->groups();
-				this->model()->getGroup(DEAD).add(this);
 
 				for(auto group : groups)
 					group->remove(this);

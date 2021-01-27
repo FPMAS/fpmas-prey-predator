@@ -80,8 +80,6 @@ int main(int argc, char** argv) {
 				&api::PreyPredator::die);
 		auto& die = model.buildGroup(DIE, die_behavior);
 
-		model.buildGroup(DEAD);
-
 		// Distributed Agent Builder
 		GridAgentBuilder<Grass> agent_builder;
 
