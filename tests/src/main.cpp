@@ -4,7 +4,12 @@
 
 
 int main(int argc, char **argv) {
-	FPMAS_REGISTER_AGENT_TYPES(GridCell::JsonBase, Prey::JsonBase, Predator::JsonBase, Grass::JsonBase, MockPreyPredator::JsonBase);
+	FPMAS_REGISTER_AGENT_TYPES(
+			GridCell::JsonBase,
+			classic::Prey::JsonBase,
+			classic::Predator::JsonBase,
+			classic::Grass::JsonBase,
+			classic::MockPreyPredator::JsonBase);
 
 	fpmas::init(argc, argv);
 

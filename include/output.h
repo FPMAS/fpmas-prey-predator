@@ -24,10 +24,7 @@ class ModelOutput :
 	public DistributedCsvOutput<
 	Local<fpmas::api::runtime::Date>, Reduce<std::size_t>, Reduce<std::size_t>, Reduce<std::size_t>> {
 		public:
-			ModelOutput(
-					fpmas::api::model::Model& model,
-					fpmas::api::model::AgentGroup& grow,
-					fpmas::api::model::AgentGroup& move);
+			ModelOutput(fpmas::api::model::Model& model);
 	};
 
 class GraphOutput :

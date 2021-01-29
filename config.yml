@@ -3,6 +3,7 @@ Grid:
     height: 100
 
 ModelConfig:
+    mode: CLASSIC
     num_steps: 50
     num_preys: 50
     num_predators: 20

@@ -1,6 +1,7 @@
 #include "output.h"
 
 void print_current_config() {
+	using namespace config;
 	std::cout << "Running PreyPredator model with the following configuration:" << std::endl;
 
 	PP_PRINT_CONFIG(ModelConfig, num_steps);
@@ -26,37 +27,35 @@ void print_current_config() {
 }
 
 ModelOutput::ModelOutput(
-		fpmas::api::model::Model& model,
-		fpmas::api::model::AgentGroup& grow,
-		fpmas::api::model::AgentGroup& move)
-	: FileOutput(ModelConfig::model_output_file), DistributedCsvOutput(
+		fpmas::api::model::Model& model)
+	: FileOutput(config::ModelConfig::model_output_file), DistributedCsvOutput(
 			model.getMpiCommunicator(), 0, this->output_file,
 			{"time", [&model] () {return model.runtime().currentDate();}},
-			{"grass", [&grow] () {
+			{"grass", [&model] () {
 			std::size_t num_grass = 0;
-			for(auto agent : grow.localAgents())
-				if(dynamic_cast<Grass*>(agent)->grown)
+			for(auto agent : model.getGroup(GROW).localAgents())
+				if(dynamic_cast<api::Grass*>(agent)->grown())
 					num_grass++;
 			return num_grass;
 			}},
-			{"prey", [&move] () {
+			{"prey", [&model] () {
 			std::size_t num_prey = 0;
-			for(auto agent : move.localAgents())
-				if(dynamic_cast<Prey*>(agent))
+			for(auto agent : model.getGroup(MOVE).localAgents())
+				if(dynamic_cast<api::PreyPredator*>(agent)->type() == api::PreyPredator::PREY)
 					num_prey++;
 			return num_prey;
 			}},
-			{"predator", [&move] () {
+			{"predator", [&model] () {
 			std::size_t num_predator = 0;
-			for(auto agent : move.localAgents())
-				if(dynamic_cast<Predator*>(agent))
+			for(auto agent : model.getGroup(MOVE).localAgents())
+				if(dynamic_cast<api::PreyPredator*>(agent)->type() == api::PreyPredator::PREDATOR)
 					num_predator++;
 			return num_predator;
 			}}) {}
 
 std::string GraphOutput::file_name(fpmas::api::communication::MpiCommunicator& comm) {
-	std::size_t replace = ModelConfig::graph_output_file.find('*');
-	std::string filename = ModelConfig::graph_output_file;
+	std::size_t replace = config::ModelConfig::graph_output_file.find('*');
+	std::string filename = config::ModelConfig::graph_output_file;
 	filename.replace(
 			replace, 1, std::to_string(comm.getRank()));
 	return filename;

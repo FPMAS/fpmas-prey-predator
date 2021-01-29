@@ -1,7 +1,10 @@
 #include "mock_prey_predator.h"
 
-float MockPreyPredator::reproduction_rate = 0.f;
-const int MockPreyPredator::initial_energy = 1;
-const int MockPreyPredator::move_cost = 1;
-const int MockPreyPredator::energy_gain = 1;
-const PPType MockPreyPredator::agent_type = PPType::PREY;
+namespace classic {
+	float MockPreyPredator::config::reproduction_rate = 0.f;
+	const int MockPreyPredator::config::initial_energy = 1;
+	const int MockPreyPredator::config::move_cost = 1;
+	const int MockPreyPredator::config::energy_gain = 1;
+
+	const MockPreyPredator::Type MockPreyPredator::agent_type = MockPreyPredator::Type::PREY;
+}

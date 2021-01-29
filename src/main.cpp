@@ -2,16 +2,22 @@
 
 #include "fpmas.h"
 #include "output.h"
-#include "yaml-cpp/yaml.h"
+#include "classic_pp.h"
 
 using namespace fpmas::model;
 
-FPMAS_JSON_SET_UP(GridCell::JsonBase, Prey::JsonBase, Predator::JsonBase, Grass::JsonBase)
+FPMAS_JSON_SET_UP(
+		GridCell::JsonBase,
+		classic::Prey::JsonBase,
+		classic::Predator::JsonBase,
+		classic::Grass::JsonBase)
 
 #define FPMAS_LOAD_FROM_YML(YML_FILE, CLASS, STATIC_FIELD) \
 	CLASS::STATIC_FIELD = YML_FILE[#CLASS][#STATIC_FIELD].as<typeof(CLASS::STATIC_FIELD)>();
 
 void load_static_config(std::string config_file) {
+	using namespace config;
+
 	YAML::Node config = YAML::LoadFile(config_file);
 
 	FPMAS_LOAD_FROM_YML(config, Grass, growing_rate);
@@ -24,6 +30,7 @@ void load_static_config(std::string config_file) {
 	FPMAS_LOAD_FROM_YML(config, ModelConfig, num_predators);
 	FPMAS_LOAD_FROM_YML(config, ModelConfig, model_output_file);
 	FPMAS_LOAD_FROM_YML(config, ModelConfig, graph_output_file);
+	FPMAS_LOAD_FROM_YML(config, ModelConfig, mode);
 
 	FPMAS_LOAD_FROM_YML(config, Prey, reproduction_rate);
 	FPMAS_LOAD_FROM_YML(config, Prey, initial_energy);
@@ -37,7 +44,11 @@ void load_static_config(std::string config_file) {
 }
 
 int main(int argc, char** argv) {
-	FPMAS_REGISTER_AGENT_TYPES(GridCell::JsonBase, Prey::JsonBase, Predator::JsonBase, Grass::JsonBase);
+	FPMAS_REGISTER_AGENT_TYPES(
+			GridCell::JsonBase,
+			classic::Prey::JsonBase,
+			classic::Predator::JsonBase,
+			classic::Grass::JsonBase);
 
 	if(argc == 1)
 		load_static_config("config.yml");
@@ -48,67 +59,25 @@ int main(int argc, char** argv) {
 
 	fpmas::init(argc, argv);
 	{
-		// Defines model and environment
-		GridModel<fpmas::synchro::HardSyncMode, Grass> model;
-		fpmas::model::GridCellFactory<Grass> cell_factory;
-		GridType::Builder grid(cell_factory, Grid::width, Grid::height);
-
-		// Builds a distributed grid
-		auto cells = grid.build(model);
-
-		Behavior<Grass> grow_behavior(&Grass::grow);
-		auto& grow = model.buildGroup(GROW, grow_behavior);
-		for(auto grass : cells)
-			grow.add(grass);
-
-
-		// Initializes agent groups and behaviors.
-		// Preys and predator are mixed in each group.
-		Behavior<api::PreyPredator> move_behavior(
-				&api::PreyPredator::move);
-		auto& move = model.buildMoveGroup(MOVE, move_behavior);
-
-		Behavior<api::PreyPredator> eat_behavior(
-				&api::PreyPredator::eat);
-		auto& eat = model.buildGroup(EAT, eat_behavior);
-
-		Behavior<api::PreyPredator> reproduce_behavior(
-				&api::PreyPredator::reproduce);
-		auto& reproduce = model.buildMoveGroup(REPRODUCE, reproduce_behavior);
-
-		Behavior<api::PreyPredator> die_behavior (
-				&api::PreyPredator::die);
-		auto& die = model.buildGroup(DIE, die_behavior);
-
-		// Distributed Agent Builder
-		GridAgentBuilder<Grass> agent_builder;
-
-		// Initializes preys (distributed process)
-		DefaultSpatialAgentFactory<Prey> prey_factory;
-		UniformGridAgentMapping prey_mapping(Grid::width, Grid::height, ModelConfig::num_preys);
-		agent_builder.build(model, {move, eat, reproduce, die}, prey_factory, prey_mapping);
-
-		// Initializes predators (distributed process)
-		DefaultSpatialAgentFactory<Predator> predator_factory;
-		UniformGridAgentMapping predator_mapping(Grid::width, Grid::height, ModelConfig::num_predators);
-		agent_builder.build(model, {move, eat, reproduce, die}, predator_factory, predator_mapping);
+		fpmas::api::model::Model* model;
+		switch(config::ModelConfig::mode) {
+			case config::CLASSIC:
+				model = new classic::Model;
+				break;
+			default:
+				std::exit(1);
+		}
 
 		// Model output specification
-		ModelOutput model_output(model, grow, move);
-		GraphOutput graph_output(model);
-		
-		// Schedules agent execution
-		model.scheduler().schedule(0, 20, model.loadBalancingJob());
-		model.scheduler().schedule(0.1, 1, grow.jobs());
-		model.scheduler().schedule(0.2, 1, move.jobs());
-		model.scheduler().schedule(0.3, 1, eat.jobs());
-		model.scheduler().schedule(0.4, 1, reproduce.jobs());
-		model.scheduler().schedule(0.5, 1, die.jobs());
-		model.scheduler().schedule(0.6, 1, model_output.job());
-		model.scheduler().schedule(0.6, 1, graph_output.job());
-
+		ModelOutput model_output(*model);
+		GraphOutput graph_output(*model);
+		model->scheduler().schedule(fpmas::scheduler::sub_step_end, 1, model_output.job());
+		model->scheduler().schedule(fpmas::scheduler::sub_step_end, 1, graph_output.job());
+	
 		// Runs the simulation
-		model.runtime().run(ModelConfig::num_steps);
+		model->runtime().run(config::ModelConfig::num_steps);
+
+		delete model;
 	}
 	fpmas::finalize();
 }

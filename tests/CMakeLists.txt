@@ -4,7 +4,7 @@ include_directories(../include include)
 
 add_executable(fpmas-prey-predator-test
 	src/main.cpp
-	src/prey_predator.cpp
+	src/classic_pp.cpp
 	src/mock_prey_predator.cpp
 	)
 target_link_libraries(

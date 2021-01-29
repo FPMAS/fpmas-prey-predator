@@ -4,22 +4,23 @@
 #include "gtest/gtest.h"
 
 using namespace testing;
+using namespace classic;
 
 TEST(Grass, constructor) {
 	Grass grass;
 
-	ASSERT_EQ(grass.grown, true);
-	ASSERT_EQ(grass.grow_count_down, Grass::growing_rate);
+	ASSERT_EQ(grass.grown(), true);
+	ASSERT_EQ(grass.growCountDown(), config::Grass::growing_rate);
 }
 
-bool operator==(const Grass& g1, const Grass& g2) {
-	return g1.grown == g2.grown && g1.grow_count_down == g2.grow_count_down;
+namespace api {
+	bool operator==(const Grass& g1, const Grass& g2) {
+		return g1.grown() == g2.grown() && g1.growCountDown() == g2.growCountDown();
+	}
 }
 
 TEST(Grass, json) {
-	Grass grass;
-	grass.grown = false;
-	grass.grow_count_down = 2;
+	Grass grass(false, 2);
 
 	nlohmann::json j = fpmas::api::utils::PtrWrapper<Grass>(&grass);
 
@@ -35,26 +36,26 @@ TEST(Grass, grow) {
 
 	// No effect while the grass is already grown
 	grass.grow();
-	ASSERT_EQ(grass.grown, true);
+	ASSERT_EQ(grass.grown(), true);
 
 	// Grass has been eaten
-	grass.grown = false;
+	grass.reset();
 
 	// Grass growing procedure
-	for(int i = 0; i < Grass::growing_rate; i++) {
-		ASSERT_EQ(grass.grown, false);
+	for(int i = 0; i < config::Grass::growing_rate; i++) {
+		ASSERT_EQ(grass.grown(), false);
 		grass.grow();
 	}
-	ASSERT_EQ(grass.grown, true);
+	ASSERT_EQ(grass.grown(), true);
 
 	// Ensures that internal countdowns are properly re-initialized, so that
 	// the grass growing cycle works
-	grass.grown = false;
-	for(int i = 0; i < Grass::growing_rate; i++) {
-		ASSERT_EQ(grass.grown, false);
+	grass.reset();
+	for(int i = 0; i < config::Grass::growing_rate; i++) {
+		ASSERT_EQ(grass.grown(), false);
 		grass.grow();
 	}
-	ASSERT_EQ(grass.grown, true);
+	ASSERT_EQ(grass.grown(), true);
 }
 
 class PreyPredatorTest : public Test {
@@ -104,7 +105,7 @@ class PreyPredatorBaseTest : public PreyPredatorTest {
 
 TEST_F(PreyPredatorBaseTest, constructor) {
 	ASSERT_EQ(mock_prey_predator->alive, true);
-	ASSERT_EQ(mock_prey_predator->energy, MockPreyPredator::initial_energy);
+	ASSERT_EQ(mock_prey_predator->energy, MockPreyPredator::config::initial_energy);
 }
 
 TEST_F(PreyPredatorBaseTest, move) {
@@ -117,12 +118,12 @@ TEST_F(PreyPredatorBaseTest, move) {
 					})
 				)
 			);
-	ASSERT_EQ(mock_prey_predator->energy, MockPreyPredator::initial_energy - MockPreyPredator::move_cost);
+	ASSERT_EQ(mock_prey_predator->energy, MockPreyPredator::config::initial_energy - MockPreyPredator::config::move_cost);
 }
 
 TEST_F(PreyPredatorBaseTest, reproduce) {
 	// Ensures that the next call to reproduce will generate a new agent
-	MockPreyPredator::reproduction_rate = 1.f;
+	MockPreyPredator::config::reproduction_rate = 1.f;
 
 	model.runtime().execute(reproduce_group.jobs());
 
@@ -143,7 +144,7 @@ TEST_F(PreyPredatorBaseTest, reproduce) {
 
 TEST_F(PreyPredatorBaseTest, no_reproduce) {
 	// Prevents agent reproduction
-	MockPreyPredator::reproduction_rate = 0.f;
+	MockPreyPredator::config::reproduction_rate = 0.f;
 
 	model.runtime().execute(reproduce_group.jobs());
 
@@ -160,7 +161,7 @@ TEST_F(PreyPredatorBaseTest, die) {
 	ASSERT_THAT(mock_prey_predator->groupIds(), UnorderedElementsAre(MOVE, REPRODUCE, DIE, EAT));
 
 	// Energy goes negative
-	mock_prey_predator->energy -= 2*MockPreyPredator::move_cost;
+	mock_prey_predator->energy -= 2*MockPreyPredator::config::move_cost;
 
 	model.runtime().execute(die_group.jobs());
 	ASSERT_THAT(move_group.localAgents(), IsEmpty());
@@ -182,8 +183,8 @@ TEST_F(PreyTest, eat) {
 	model.runtime().execute(eat_group.jobs());
 
 	// Check that the Grass has been eaten
-	int energy = Prey::initial_energy + Prey::energy_gain;
-	ASSERT_EQ(prey->locationCell()->grown, false);
+	int energy = config::Prey::initial_energy + config::Prey::energy_gain;
+	ASSERT_EQ(prey->locationCell()->grown(), false);
 	ASSERT_EQ(prey->energy, energy);
 	
 	// The grass is not grown yet, so no energy gain
@@ -207,7 +208,7 @@ TEST_F(PredatorTest, eat) {
 	ASSERT_THAT(predator->node()->outNeighbors(fpmas::api::model::PERCEPTION), ElementsAre(prey->node()));
 	model.runtime().execute(eat_group.jobs());
 
-	int energy = Predator::initial_energy + Predator::energy_gain;
+	int energy = config::Predator::initial_energy + config::Predator::energy_gain;
 	ASSERT_EQ(prey->alive, false);
 	ASSERT_EQ(predator->energy, energy);
 
