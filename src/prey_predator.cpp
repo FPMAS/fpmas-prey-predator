@@ -5,8 +5,8 @@ namespace config {
 	int Grid::height = 100;
 
 	int ModelConfig::num_steps = 100;
-	int ModelConfig::num_preys = 100;
-	int ModelConfig::num_predators = 20;
+	std::size_t ModelConfig::num_preys = 100;
+	std::size_t ModelConfig::num_predators = 20;
 	Mode ModelConfig::mode = CLASSIC;
 
 	std::string ModelConfig::model_output_file = "model.csv";

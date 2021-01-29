@@ -4,6 +4,7 @@ void print_current_config() {
 	using namespace config;
 	std::cout << "Running PreyPredator model with the following configuration:" << std::endl;
 
+	PP_PRINT_CONFIG(ModelConfig, mode);
 	PP_PRINT_CONFIG(ModelConfig, num_steps);
 	PP_PRINT_CONFIG(ModelConfig, num_preys);
 	PP_PRINT_CONFIG(ModelConfig, num_predators);

@@ -1,4 +1,4 @@
-#include "mock_prey_predator.h"
+#include "config.h"
 
 namespace classic {
 	float MockPreyPredator::config::reproduction_rate = 0.f;

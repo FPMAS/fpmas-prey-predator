@@ -5,6 +5,7 @@
 #include "classic_pp.h"
 
 namespace classic {
+
 	class MockPreyPredator : public PreyPredator<MockPreyPredator> {
 		public:
 			static const Type agent_type;

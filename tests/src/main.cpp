@@ -2,7 +2,6 @@
 
 #include "config.h"
 
-
 int main(int argc, char **argv) {
 	FPMAS_REGISTER_AGENT_TYPES(
 			GridCell::JsonBase,

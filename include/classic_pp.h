@@ -187,6 +187,29 @@ namespace classic {
 			}
 	};
 
-	typedef ::Model<GridType, Prey, Predator, Grass> Model;
+	struct Mappings {
+		protected:
+			UniformGridAgentMapping prey_mapping {
+				config::Grid::width,
+					config::Grid::height,
+					config::ModelConfig::num_preys
+			};
+			UniformGridAgentMapping predator_mapping {
+				config::Grid::width,
+					config::Grid::height,
+					config::ModelConfig::num_predators
+			};
+	};
+
+	// Mappings are initialized before the base ::Model, what is required since the
+	// ::Model constructor uses mappings.
+	// If mappings were Model fields, they would necessarily be initialized
+	// after the base ::Model, what produces a seg fault.
+	class Model : private Mappings, public ::Model<GridType, Prey, Predator, Grass> {
+		private:
+					public:
+			Model() : ::Model<GridType, Prey, Predator, Grass>(
+					prey_mapping, predator_mapping) {}
+	};
 }
 #endif

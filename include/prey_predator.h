@@ -22,8 +22,8 @@ namespace config {
 
 	namespace ModelConfig {
 		extern int num_steps;
-		extern int num_preys;
-		extern int num_predators;
+		extern std::size_t num_preys;
+		extern std::size_t num_predators;
 		extern std::string model_output_file;
 		extern std::string graph_output_file;
 		extern Mode mode;
@@ -123,7 +123,10 @@ class Model : public fpmas::model::GridModel<fpmas::synchro::HardSyncMode, Grass
 				&api::PreyPredator::die};
 
 	public:
-		Model() {
+		Model(
+				fpmas::api::model::GridAgentMapping& prey_mapping,
+				fpmas::api::model::GridAgentMapping& predator_mapping
+				) {
 			// Builds a distributed grid
 			auto cells = grid.build(*this);
 
@@ -141,18 +144,10 @@ class Model : public fpmas::model::GridModel<fpmas::synchro::HardSyncMode, Grass
 
 			// Initializes preys (distributed process)
 			DefaultSpatialAgentFactory<Prey> prey_factory;
-			UniformGridAgentMapping prey_mapping(
-					config::Grid::width,
-					config::Grid::height,
-					config::ModelConfig::num_preys);
 			agent_builder.build(*this, {move, eat, reproduce, die}, prey_factory, prey_mapping);
 
 			// Initializes predators (distributed process)
 			DefaultSpatialAgentFactory<Predator> predator_factory;
-			UniformGridAgentMapping predator_mapping(
-					config::Grid::width,
-					config::Grid::height,
-					config::ModelConfig::num_predators);
 			agent_builder.build(*this, {move, eat, reproduce, die}, predator_factory, predator_mapping);
 
 			// Schedules agent execution
