@@ -1,10 +1,8 @@
 #include "config.h"
 
-namespace classic {
-	float MockPreyPredator::config::reproduction_rate = 0.f;
-	const int MockPreyPredator::config::initial_energy = 1;
-	const int MockPreyPredator::config::move_cost = 1;
-	const int MockPreyPredator::config::energy_gain = 1;
+float MockPreyPredatorConfig::config::reproduction_rate = 0.f;
+const int MockPreyPredatorConfig::config::initial_energy = 1;
+const int MockPreyPredatorConfig::config::move_cost = 1;
+const int MockPreyPredatorConfig::config::energy_gain = 1;
 
-	const MockPreyPredator::Type MockPreyPredator::agent_type = MockPreyPredator::Type::PREY;
-}
+const api::PreyPredator::Type MockPreyPredatorConfig::agent_type = api::PreyPredator::Type::PREY;

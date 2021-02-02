@@ -1,5 +1,7 @@
 #include "prey_predator.h"
 
+fpmas::random::DistributedGenerator<> rd;
+
 namespace config {
 	int Grid::width = 100;
 	int Grid::height = 100;

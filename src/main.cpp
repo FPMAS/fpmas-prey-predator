@@ -3,6 +3,7 @@
 #include "fpmas.h"
 #include "output.h"
 #include "classic_pp.h"
+#include "constrained_pp.h"
 
 using namespace fpmas::model;
 
@@ -63,6 +64,9 @@ int main(int argc, char** argv) {
 		switch(config::ModelConfig::mode) {
 			case config::CLASSIC:
 				model = new classic::Model;
+				break;
+			case config::CONSTRAINED:
+				model = new constrained::Model;
 				break;
 			default:
 				std::exit(1);

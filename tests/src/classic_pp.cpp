@@ -1,25 +1,16 @@
-//#include "mock_prey_predator.h"
 #include "config.h"
 #include "fpmas/synchro/hard/hard_sync_mode.h"
-#include "gtest/gtest.h"
 
 using namespace testing;
 using namespace classic;
 
-TEST(Grass, constructor) {
-	Grass grass;
-
-	ASSERT_EQ(grass.grown(), true);
-	ASSERT_EQ(grass.growCountDown(), config::Grass::growing_rate);
-}
-
-namespace api {
+namespace classic {
 	bool operator==(const Grass& g1, const Grass& g2) {
 		return g1.grown() == g2.grown() && g1.growCountDown() == g2.growCountDown();
 	}
 }
 
-TEST(Grass, json) {
+TEST(ClassicGrass, json) {
 	Grass grass(false, 2);
 
 	nlohmann::json j = fpmas::api::utils::PtrWrapper<Grass>(&grass);
@@ -31,70 +22,7 @@ TEST(Grass, json) {
 	delete unserialized_grass.get();
 }
 
-TEST(Grass, grow) {
-	Grass grass;
-
-	// No effect while the grass is already grown
-	grass.grow();
-	ASSERT_EQ(grass.grown(), true);
-
-	// Grass has been eaten
-	grass.reset();
-
-	// Grass growing procedure
-	for(int i = 0; i < config::Grass::growing_rate; i++) {
-		ASSERT_EQ(grass.grown(), false);
-		grass.grow();
-	}
-	ASSERT_EQ(grass.grown(), true);
-
-	// Ensures that internal countdowns are properly re-initialized, so that
-	// the grass growing cycle works
-	grass.reset();
-	for(int i = 0; i < config::Grass::growing_rate; i++) {
-		ASSERT_EQ(grass.grown(), false);
-		grass.grow();
-	}
-	ASSERT_EQ(grass.grown(), true);
-}
-
-class PreyPredatorTest : public Test {
-	protected:
-		GridModel<fpmas::synchro::HardSyncMode, Grass> model;
-		fpmas::model::GridCellFactory<Grass> cell_factory;
-		GridType::Builder grid {cell_factory, 5, 5};
-		Behavior<api::PreyPredator> move_behavior {&api::PreyPredator::move};
-		Behavior<api::PreyPredator> reproduce_behavior {&api::PreyPredator::reproduce};
-		Behavior<api::PreyPredator> die_behavior {&api::PreyPredator::die};
-		Behavior<api::PreyPredator> eat_behavior {&api::PreyPredator::eat};
-		fpmas::api::model::MoveAgentGroup<Grass>& move_group {
-			model.buildMoveGroup(MOVE, move_behavior)};
-		fpmas::api::model::MoveAgentGroup<Grass>& reproduce_group {
-			model.buildMoveGroup(REPRODUCE, reproduce_behavior)};
-		fpmas::api::model::AgentGroup& die_group {
-			model.buildGroup(DIE, die_behavior)};
-		fpmas::api::model::AgentGroup& eat_group {
-			model.buildGroup(EAT, eat_behavior)};
-		// Builds a simple 5x5 grid
-		std::vector<Grass*> cells = grid.build(model);
-
-		void initAgent(
-				fpmas::api::model::GridAgent<Grass>* agent,
-				fpmas::api::model::DiscretePoint location = {2, 2}) {
-			move_group.add(agent);
-			reproduce_group.add(agent);
-			die_group.add(agent);
-			eat_group.add(agent);
-
-			auto cell = find_if(
-					cells.begin(), cells.end(),
-					[location] (Grass* grass) -> bool {return grass->location() == location;});
-			agent->initLocation(*cell);
-			model.runtime().execute(move_group.distributedMoveAlgorithm().jobs());
-		}
-};
-
-class PreyPredatorBaseTest : public PreyPredatorTest {
+class ClassicPreyPredatorTest : public PreyPredatorTest<Grass> {
 	protected:
 		MockPreyPredator* mock_prey_predator = new MockPreyPredator;
 
@@ -103,12 +31,7 @@ class PreyPredatorBaseTest : public PreyPredatorTest {
 		}
 };
 
-TEST_F(PreyPredatorBaseTest, constructor) {
-	ASSERT_EQ(mock_prey_predator->alive, true);
-	ASSERT_EQ(mock_prey_predator->energy, MockPreyPredator::config::initial_energy);
-}
-
-TEST_F(PreyPredatorBaseTest, move) {
+TEST_F(ClassicPreyPredatorTest, move) {
 	model.runtime().execute(move_group.jobs());
 
 	ASSERT_THAT(
@@ -118,10 +41,10 @@ TEST_F(PreyPredatorBaseTest, move) {
 					})
 				)
 			);
-	ASSERT_EQ(mock_prey_predator->energy, MockPreyPredator::config::initial_energy - MockPreyPredator::config::move_cost);
+	ASSERT_EQ(mock_prey_predator->energy(), MockPreyPredator::config::initial_energy - MockPreyPredator::config::move_cost);
 }
 
-TEST_F(PreyPredatorBaseTest, reproduce) {
+TEST_F(ClassicPreyPredatorTest, reproduce) {
 	// Ensures that the next call to reproduce will generate a new agent
 	MockPreyPredator::config::reproduction_rate = 1.f;
 
@@ -142,7 +65,7 @@ TEST_F(PreyPredatorBaseTest, reproduce) {
 	ASSERT_THAT((*new_agent)->groupIds(), UnorderedElementsAre(MOVE, REPRODUCE, DIE, EAT));
 }
 
-TEST_F(PreyPredatorBaseTest, no_reproduce) {
+TEST_F(ClassicPreyPredatorTest, no_reproduce) {
 	// Prevents agent reproduction
 	MockPreyPredator::config::reproduction_rate = 0.f;
 
@@ -152,68 +75,4 @@ TEST_F(PreyPredatorBaseTest, no_reproduce) {
 	ASSERT_THAT(reproduce_group.localAgents(), SizeIs(1));
 	ASSERT_THAT(eat_group.localAgents(), SizeIs(1));
 	ASSERT_THAT(die_group.localAgents(), SizeIs(1));
-}
-
-TEST_F(PreyPredatorBaseTest, die) {
-	model.runtime().execute(die_group.jobs());
-
-	ASSERT_EQ(mock_prey_predator->alive, true);
-	ASSERT_THAT(mock_prey_predator->groupIds(), UnorderedElementsAre(MOVE, REPRODUCE, DIE, EAT));
-
-	// Energy goes negative
-	mock_prey_predator->energy -= 2*MockPreyPredator::config::move_cost;
-
-	model.runtime().execute(die_group.jobs());
-	ASSERT_THAT(move_group.localAgents(), IsEmpty());
-	ASSERT_THAT(reproduce_group.localAgents(), IsEmpty());
-	ASSERT_THAT(eat_group.localAgents(), IsEmpty());
-	ASSERT_THAT(die_group.localAgents(), IsEmpty());
-}
-
-class PreyTest : public PreyPredatorTest {
-	protected:
-		Prey* prey = new Prey;
-
-		void SetUp() override {
-			initAgent(prey);
-		}
-};
-
-TEST_F(PreyTest, eat) {
-	model.runtime().execute(eat_group.jobs());
-
-	// Check that the Grass has been eaten
-	int energy = config::Prey::initial_energy + config::Prey::energy_gain;
-	ASSERT_EQ(prey->locationCell()->grown(), false);
-	ASSERT_EQ(prey->energy, energy);
-	
-	// The grass is not grown yet, so no energy gain
-	model.runtime().execute(eat_group.jobs());
-	ASSERT_EQ(prey->energy, energy);
-}
-
-class PredatorTest : public PreyPredatorTest {
-	protected:
-		Predator* predator = new Predator;
-		Prey* prey = new Prey;
-
-		void SetUp() override {
-			initAgent(predator);
-			initAgent(prey, {3, 2});
-		}
-};
-
-TEST_F(PredatorTest, eat) {
-	// Eat the prey
-	ASSERT_THAT(predator->node()->outNeighbors(fpmas::api::model::PERCEPTION), ElementsAre(prey->node()));
-	model.runtime().execute(eat_group.jobs());
-
-	int energy = config::Predator::initial_energy + config::Predator::energy_gain;
-	ASSERT_EQ(prey->alive, false);
-	ASSERT_EQ(predator->energy, energy);
-
-	// Predator can't eat a dead prey, even if the prey is still in its
-	// perception range
-	model.runtime().execute(eat_group.jobs());
-	ASSERT_EQ(predator->energy, energy);
 }
