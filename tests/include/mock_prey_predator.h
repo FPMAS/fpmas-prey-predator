@@ -22,7 +22,7 @@ namespace base {
 
 	template<typename AgentType>
 	class MockPreyPredatorBase :
-		public PreyPredator<AgentType, fpmas::model::VonNeumannGrid<MockGrass>, MockGrass> {
+		public PreyPredator<AgentType, MockGrass> {
 		public:
 			// die() is concrete, move() and reproduce() are mocked
 			MOCK_METHOD(void, move, (), (override));

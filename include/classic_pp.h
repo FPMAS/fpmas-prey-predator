@@ -23,10 +23,8 @@ namespace classic {
 			}
 	};
 
-	typedef VonNeumannGrid<Grass> GridType;
-
 	template<typename AgentType>
-		class PreyPredator : public base::PreyPredator<AgentType, GridType, Grass> {
+		class PreyPredator : public base::PreyPredator<AgentType, Grass> {
 			public:
 				void move() override {
 					this->_energy -= AgentType::config::move_cost;
@@ -99,9 +97,9 @@ namespace classic {
 	// base::Model constructor uses mappings.
 	// If mappings were Model fields, they would necessarily be initialized
 	// after the base::Model, what produces a seg fault.
-	class Model : private Mappings, public base::Model<GridType, Prey, Predator, Grass> {
+	class Model : private Mappings, public base::Model<Prey, Predator, Grass> {
 		public:
-			Model() : base::Model<GridType, Prey, Predator, Grass>(
+			Model() : base::Model<Prey, Predator, Grass>(
 					prey_mapping, predator_mapping) {}
 	};
 }

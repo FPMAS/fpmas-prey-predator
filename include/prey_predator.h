@@ -174,13 +174,12 @@ namespace base {
 	 * This is a abstract class, that only implements the die() behavior.
 	 *
 	 * @tparam AgentType Most derived type from this class (concrete class)
-	 * @tparam GridType Type of grid on which agents are moving
 	 * @tparam GrassType Most derived api::Grass implementation
 	 */
-	template<typename AgentType, typename GridType, typename GrassType>
+	template<typename AgentType, typename GrassType>
 		class PreyPredator : public api::PreyPredator, public GridAgent<AgentType, GrassType> {
 			protected:
-				static const VonNeumannRange<GridType> range;
+				static const VonNeumannRange<VonNeumannGrid<GrassType>> range;
 				PreyPredator() : GridAgent<AgentType, GrassType>(this->range, this->range) {}
 
 				fpmas::random::UniformRealDistribution<> random_real {0, 1};
@@ -217,8 +216,8 @@ namespace base {
 					return _energy;
 				}
 		};
-	template<typename AgentType, typename GridType, typename GrassType>
-		const VonNeumannRange<GridType> PreyPredator<AgentType, GridType, GrassType>::range(1);
+	template<typename AgentType, typename GrassType>
+		const VonNeumannRange<VonNeumannGrid<GrassType>> PreyPredator<AgentType, GrassType>::range(1);
 
 	/**
 	 * Base Prey implementation.
@@ -267,11 +266,11 @@ namespace base {
 			};
 	};
 
-	template<typename Grid, typename Prey, typename Predator, typename Grass>
+	template<typename Prey, typename Predator, typename Grass>
 		class Model : public fpmas::model::GridModel<fpmas::synchro::HardSyncMode, Grass> {
 			private:
 				fpmas::model::GridCellFactory<Grass> cell_factory;
-				typename Grid::Builder grid {
+				typename VonNeumannGrid<Grass>::Builder grid {
 					cell_factory, config::Grid::width, config::Grid::height
 				};
 
