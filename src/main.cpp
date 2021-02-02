@@ -4,6 +4,7 @@
 #include "output.h"
 #include "classic_pp.h"
 #include "constrained_pp.h"
+#include <iomanip>
 
 using namespace fpmas::model;
 
@@ -75,8 +76,8 @@ int main(int argc, char** argv) {
 		// Model output specification
 		ModelOutput model_output(*model);
 		GraphOutput graph_output(*model);
-		model->scheduler().schedule(fpmas::scheduler::sub_step_end, 1, model_output.job());
-		model->scheduler().schedule(fpmas::scheduler::sub_step_end, 1, graph_output.job());
+		model->scheduler().schedule(fpmas::scheduler::sub_step_end(0), 1, model_output.job());
+		model->scheduler().schedule(fpmas::scheduler::sub_step_end(0), 1, graph_output.job());
 	
 		// Runs the simulation
 		model->runtime().run(config::ModelConfig::num_steps);
