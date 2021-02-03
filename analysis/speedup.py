@@ -22,13 +22,14 @@ def read_data(output_directory):
         num_procs = [num_proc for num_proc in config.iterdir()]
         data[config.name] = [[], []]
         for num_proc in sorted([int(num_proc.name) for num_proc in num_procs]):
-            data[config.name][0].append(num_proc)
             jobs = [job for job in (config / str(num_proc)).iterdir()]
             time = 0.0
-            for job in jobs:
-                with open(job / "time.txt", "r") as time_file:
-                    time += float(time_file.read())
-            data[config.name][1].append(time / len(jobs))
+            if len(jobs) > 0:
+                for job in jobs:
+                    with open(job / "time.txt", "r") as time_file:
+                        time += float(time_file.read())
+                data[config.name][0].append(num_proc)
+                data[config.name][1].append(time / len(jobs))
     return data
 
 def plot_speedup(data):
