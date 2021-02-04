@@ -1,4 +1,4 @@
-#include "config.h"
+#include "test_config.h"
 #include "fpmas/synchro/hard/hard_sync_mode.h"
 
 using namespace testing;
@@ -22,17 +22,29 @@ TEST(ClassicGrass, json) {
 	delete unserialized_grass.get();
 }
 
-class ClassicPreyPredatorTest : public PreyPredatorTest<Grass> {
-	protected:
-		MockPreyPredator* mock_prey_predator = new MockPreyPredator;
+typedef PreyPredatorTest<Grass> ClassicPreyPredatorTest;
 
-		void SetUp() override {
-			initAgent(mock_prey_predator);
-		}
-};
+namespace classic {
+	class MockMove :
+		public Move,
+		public base::PreyPredator<MockMove> {
+			public:
+				MockMove() :
+					Move(mock::config::move_cost),
+					base::PreyPredator<MockMove>(mock::config::initial_energy) {}
+
+				DEFAULT_MOCK_SPECIAL_MEMBERS(MockMove)
+
+					MOCK_METHOD(void, eat, (), (override));
+				MOCK_METHOD(void, reproduce, (), (override));
+				MOCK_METHOD(void, die, (), (override));
+		};
+}
 
 TEST_F(ClassicPreyPredatorTest, move) {
-	model.runtime().execute(move_group.jobs());
+	MockMove* mock_prey_predator = new MockMove;
+	initAgent(mock_prey_predator);
+	this->runtime().execute(move_group.jobs());
 
 	ASSERT_THAT(
 			mock_prey_predator->locationPoint(),
@@ -41,14 +53,34 @@ TEST_F(ClassicPreyPredatorTest, move) {
 					})
 				)
 			);
-	ASSERT_EQ(mock_prey_predator->energy(), MockPreyPredator::config::initial_energy - MockPreyPredator::config::move_cost);
+	ASSERT_EQ(mock_prey_predator->energy(), mock::config::initial_energy - mock::config::move_cost);
+}
+
+namespace classic {
+	class MockReproduce :
+		public Reproduce,
+		public base::PreyPredator<MockReproduce> {
+			public:
+				MockReproduce() :
+					Reproduce(mock::config::reproduction_rate),
+					base::PreyPredator<MockReproduce>(mock::config::initial_energy) {}
+
+				DEFAULT_MOCK_SPECIAL_MEMBERS(MockReproduce)
+
+					MOCK_METHOD(void, eat, (), (override));
+				MOCK_METHOD(void, move, (), (override));
+				MOCK_METHOD(void, die, (), (override));
+		};
 }
 
 TEST_F(ClassicPreyPredatorTest, reproduce) {
 	// Ensures that the next call to reproduce will generate a new agent
-	MockPreyPredator::config::reproduction_rate = 1.f;
+	mock::config::reproduction_rate = 1.f;
 
-	model.runtime().execute(reproduce_group.jobs());
+	MockReproduce* mock_prey_predator = new MockReproduce;
+	this->initAgent(mock_prey_predator);
+
+	this->runtime().execute(reproduce_group.jobs());
 
 	ASSERT_THAT(move_group.localAgents(), SizeIs(2));
 	ASSERT_THAT(reproduce_group.localAgents(), SizeIs(2));
@@ -58,18 +90,22 @@ TEST_F(ClassicPreyPredatorTest, reproduce) {
 	auto agents = move_group.localAgents();
 	auto new_agent = find_if(
 			agents.begin(), agents.end(),
-			[this] (fpmas::api::model::Agent* agent) -> bool {return agent != mock_prey_predator;}
+			[mock_prey_predator] (fpmas::api::model::Agent* agent) -> bool {return agent != mock_prey_predator;}
 			);
 
-	ASSERT_EQ(dynamic_cast<fpmas::api::model::GridAgent<Grass>*>(*new_agent)->locationPoint(), fpmas::api::model::DiscretePoint(2, 2));
+	ASSERT_THAT(*new_agent, WhenDynamicCastTo<MockReproduce*>(NotNull()));
+	ASSERT_EQ(dynamic_cast<api::PreyPredator*>(*new_agent)->locationPoint(), fpmas::api::model::DiscretePoint(2, 2));
 	ASSERT_THAT((*new_agent)->groupIds(), UnorderedElementsAre(MOVE, REPRODUCE, DIE, EAT));
 }
 
 TEST_F(ClassicPreyPredatorTest, no_reproduce) {
 	// Prevents agent reproduction
-	MockPreyPredator::config::reproduction_rate = 0.f;
+	mock::config::reproduction_rate = 0.f;
 
-	model.runtime().execute(reproduce_group.jobs());
+	MockReproduce* mock_prey_predator = new MockReproduce;
+	this->initAgent(mock_prey_predator);
+
+	this->runtime().execute(reproduce_group.jobs());
 
 	ASSERT_THAT(move_group.localAgents(), SizeIs(1));
 	ASSERT_THAT(reproduce_group.localAgents(), SizeIs(1));

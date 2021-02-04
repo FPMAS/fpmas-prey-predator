@@ -1,17 +1,17 @@
-#include "config.h"
+#include "test_config.h"
 
 using namespace testing;
 using namespace base;
 
 TEST(Grass, constructor) {
-	Grass<MockGrass> grass;
+	MockGrass grass;
 
 	ASSERT_EQ(grass.grown(), true);
 	ASSERT_EQ(grass.growCountDown(), config::Grass::growing_rate);
 }
 
 TEST(Grass, grow) {
-	Grass<MockGrass> grass;
+	MockGrass grass;
 
 	// No effect while the grass is already grown
 	grass.grow();
@@ -37,48 +37,63 @@ TEST(Grass, grow) {
 	ASSERT_EQ(grass.grown(), true);
 }
 
-
-class BasePreyPredatorTest : public PreyPredatorTest<MockGrass> {
-	protected:
-		MockPreyPredator* mock_prey_predator = new MockPreyPredator;
-
-		void SetUp() override {
-			initAgent(mock_prey_predator);
-		}
-};
+typedef PreyPredatorTest<MockGrass> BasePreyPredatorTest;
 
 TEST_F(BasePreyPredatorTest, constructor) {
-	ASSERT_EQ(mock_prey_predator->alive(), true);
-	ASSERT_EQ(mock_prey_predator->energy(), MockPreyPredator::config::initial_energy);
+	MockPreyPredator mock_prey_predator;
+	ASSERT_EQ(mock_prey_predator.alive(), true);
+	ASSERT_EQ(mock_prey_predator.energy(), mock::config::initial_energy);
 }
 
+class MockDie :
+	public Die,
+	public PreyPredator<MockDie> {
+	public:
+		MockDie()
+			: PreyPredator<MockDie>(mock::config::initial_energy) {}
+		DEFAULT_MOCK_SPECIAL_MEMBERS(MockDie)
+
+		MOCK_METHOD(void, move, (), (override));
+		MOCK_METHOD(void, reproduce, (), (override));
+		MOCK_METHOD(void, eat, (), (override));
+		MOCK_METHOD(fpmas::model::Neighbors<api::Grass>, neighborCells, (), (override));
+};
+
 TEST_F(BasePreyPredatorTest, die) {
-	model.runtime().execute(die_group.jobs());
+	MockDie* mock_prey_predator = new MockDie;
+	this->initAgent(mock_prey_predator);
+	this->runtime().execute(die_group.jobs());
 
 	ASSERT_EQ(mock_prey_predator->alive(), true);
 	ASSERT_THAT(mock_prey_predator->groupIds(), UnorderedElementsAre(MOVE, REPRODUCE, DIE, EAT));
 
 	// Energy goes negative
-	mock_prey_predator->setEnergy(mock_prey_predator->energy() - 2*MockPreyPredator::config::move_cost);
+	mock_prey_predator->energy() -= 2*mock::config::move_cost;
 
-	model.runtime().execute(die_group.jobs());
+	this->runtime().execute(die_group.jobs());
 	ASSERT_THAT(move_group.localAgents(), IsEmpty());
 	ASSERT_THAT(reproduce_group.localAgents(), IsEmpty());
 	ASSERT_THAT(eat_group.localAgents(), IsEmpty());
 	ASSERT_THAT(die_group.localAgents(), IsEmpty());
 }
+class MockPreyEat :
+	public prey::Eat,
+	public PreyPredator<MockPreyEat> {
+		public:
+			MockPreyEat()
+				: PreyPredator<MockPreyEat>(config::Prey::initial_energy) {}
+			DEFAULT_MOCK_SPECIAL_MEMBERS(MockPreyEat)
 
-class BasePreyTest : public BasePreyPredatorTest {
-	protected:
-		MockPrey* prey = new MockPrey;
+			MOCK_METHOD(void, die, (), (override));
+			MOCK_METHOD(void, move, (), (override));
+			MOCK_METHOD(void, reproduce, (), (override));
+			MOCK_METHOD(fpmas::model::Neighbors<api::Grass>, neighborCells, (), (override));
+	};
 
-		void SetUp() {
-			initAgent(prey);
-		}
-};
-
-TEST_F(BasePreyTest, eat) {
-	model.runtime().execute(eat_group.jobs());
+TEST_F(BasePreyPredatorTest, prey_eat) {
+	MockPreyEat* prey = new MockPreyEat;
+	this->initAgent(prey);
+	this->runtime().execute(eat_group.jobs());
 
 	// Check that the Grass has been eaten
 	int energy = config::Prey::initial_energy + config::Prey::energy_gain;
@@ -86,25 +101,31 @@ TEST_F(BasePreyTest, eat) {
 	ASSERT_EQ(prey->energy(), energy);
 
 	// The grass is not grown yet, so no energy gain
-	model.runtime().execute(eat_group.jobs());
+	this->runtime().execute(eat_group.jobs());
 	ASSERT_EQ(prey->energy(), energy);
 }
+class MockPredatorEat :
+	public predator::Eat,
+	public base::Predator<MockPredatorEat> {
+		public:
+			MockPredatorEat()
+				: base::Predator<MockPredatorEat>(config::Predator::initial_energy) {}
+			DEFAULT_MOCK_SPECIAL_MEMBERS(MockPredatorEat)
 
-class BasePredatorTest : public BasePreyPredatorTest {
-	protected:
-		MockPredator* predator = new MockPredator;
-		MockPrey* prey = new MockPrey;
+			MOCK_METHOD(void, die, (), (override));
+			MOCK_METHOD(void, move, (), (override));
+			MOCK_METHOD(void, reproduce, (), (override));
+			MOCK_METHOD(fpmas::model::Neighbors<api::Grass>, neighborCells, (), (override));
+	};
 
-		void SetUp() override {
-			initAgent(predator);
-			initAgent(prey, {3, 2});
-		}
-};
-
-TEST_F(BasePredatorTest, eat) {
+TEST_F(BasePreyPredatorTest, predator_eat) {
+	MockPredatorEat* predator = new MockPredatorEat;
+	MockPrey* prey = new NiceMock<MockPrey>;
+	initAgent(predator);
+	initAgent(prey, {3, 2});
 	// Eat the prey
 	ASSERT_THAT(predator->node()->outNeighbors(fpmas::api::model::PERCEPTION), ElementsAre(prey->node()));
-	model.runtime().execute(eat_group.jobs());
+	this->runtime().execute(eat_group.jobs());
 
 	int energy = config::Predator::initial_energy + config::Predator::energy_gain;
 	ASSERT_EQ(prey->alive(), false);
@@ -112,6 +133,6 @@ TEST_F(BasePredatorTest, eat) {
 
 	// Predator can't eat a dead prey, even if the prey is still in its
 	// perception range
-	model.runtime().execute(eat_group.jobs());
+	this->runtime().execute(eat_group.jobs());
 	ASSERT_EQ(predator->energy(), energy);
 }

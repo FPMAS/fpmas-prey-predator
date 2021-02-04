@@ -5,104 +5,62 @@
 #include "classic_pp.h"
 #include "constrained_pp.h"
 
-struct MockPreyPredatorConfig {
-	static const api::PreyPredator::Type agent_type;
-	struct config {
-		static float reproduction_rate;
-		static const int initial_energy;
-		static const int move_cost;
-		static const int energy_gain;
-	};
-};
+#define DEFAULT_MOCK_SPECIAL_MEMBERS(CLASS)\
+		CLASS(const CLASS&) : CLASS() {}\
+		CLASS(CLASS&&) : CLASS() {}\
+		CLASS& operator=(const CLASS&) {return *this;}\
+		CLASS& operator=(CLASS&&) {return *this;}\
+
+#define DEFAULT_MOCK_CONSTRUCTORS(CLASS)\
+		CLASS() {}\
+		DEFAULT_MOCK_SPECIAL_MEMBERS(CLASS)
+
+namespace mock {
+	namespace config {
+		extern float reproduction_rate;
+		extern const int initial_energy;
+		extern const int move_cost;
+		extern const int energy_gain;
+	}
+}
 
 namespace base {
-	class MockGrass : public Grass<MockGrass> {
-		using Grass<MockGrass>::Grass;
+	class MockGrass : public Grass, public fpmas::model::GridCellBase<MockGrass> {
+		using Grass::Grass;
+		using fpmas::model::GridCellBase<MockGrass>::GridCellBase;
 	};
 
-	template<typename AgentType>
-	class MockPreyPredatorBase :
-		public PreyPredator<AgentType, MockGrass> {
+	class MockPreyPredator :
+		public PreyPredator<MockPreyPredator> {
 		public:
-			// die() is concrete, move() and reproduce() are mocked
+			MockPreyPredator()
+				: PreyPredator<MockPreyPredator>(
+						mock::config::initial_energy) {}
+
+			// Forces constructor definitions (deleted by GMock)
+			DEFAULT_MOCK_SPECIAL_MEMBERS(MockPreyPredator)
+
+			MOCK_METHOD(void, die, (), (override));
 			MOCK_METHOD(void, move, (), (override));
 			MOCK_METHOD(void, reproduce, (), (override));
-	};
-
-	class MockPreyPredator :
-		public MockPreyPredatorConfig,
-		public MockPreyPredatorBase<MockPreyPredator> {
-		public:
-			// Forces constructor definitions (deleted by GMock)
-			MockPreyPredator() {}
-			MockPreyPredator(const MockPreyPredator&) {}
-			MockPreyPredator& operator=(const MockPreyPredator&) {return *this;}
-			MockPreyPredator& operator=(MockPreyPredator&&) {return *this;}
-			MockPreyPredator(MockPreyPredator&&) {}
-
-			// die() is concrete, move(), reproduce() and eat() are mocked
 			MOCK_METHOD(void, eat, (), (override));
-
-			void setEnergy(int energy) {
-				this->_energy = energy;
-			}
+			MOCK_METHOD(fpmas::model::Neighbors<api::Grass>, neighborCells, (), (override));
 	};
 
-	class MockPrey : public Prey<MockPreyPredatorBase<MockPrey>> {
-		// die() and eat() are concrete, move() and reproduce() are mocked
-		public:
-			// Forces constructor definitions (deleted by GMock)
-			MockPrey() {}
-			MockPrey(const MockPrey&) {}
-			MockPrey& operator=(const MockPrey&) {return *this;}
-			MockPrey& operator=(MockPrey&&) {return *this;}
-			MockPrey(MockPrey&&) {}
-	};
+	class MockPrey :
+		public api::Prey,
+		public PreyPredator<MockPrey> {
+			public:
+				MockPrey() : PreyPredator<MockPrey>(
+						mock::config::initial_energy) {}
 
-	class MockPredator : public Predator<MockPreyPredatorBase<MockPredator>> {
-		// die() and eat() are concrete, move() and reproduce() are mocked
-		public:
-			// Forces constructor definitions (deleted by GMock)
-			MockPredator() {}
-			MockPredator(const MockPredator&) {}
-			MockPredator& operator=(const MockPredator&) {return *this;}
-			MockPredator& operator=(MockPredator&&) {return *this;}
-			MockPredator(MockPredator&&) {}
-	};
+				DEFAULT_MOCK_SPECIAL_MEMBERS(MockPrey)
 
-}
-
-namespace classic {
-
-	class MockPreyPredator :
-		public MockPreyPredatorConfig,
-		public PreyPredator<MockPreyPredator> {
-		public:
-			MockPreyPredator() {}
-			MockPreyPredator(const MockPreyPredator&) {}
-			MockPreyPredator& operator=(const MockPreyPredator&) {return *this;}
-			MockPreyPredator& operator=(MockPreyPredator&&) {return *this;}
-			MockPreyPredator(MockPreyPredator&&) {}
-
-			// die(), move() and reproduce() are concrete, eat() is mocked
-			MOCK_METHOD(void, eat, (), (override));
+				MOCK_METHOD(void, die, (), (override));
+				MOCK_METHOD(void, move, (), (override));
+				MOCK_METHOD(void, reproduce, (), (override));
+				MOCK_METHOD(void, eat, (), (override));
+				MOCK_METHOD(fpmas::model::Neighbors<api::Grass>, neighborCells, (), (override));
 	};
 }
-
-namespace constrained {
-	class MockPreyPredator :
-		public MockPreyPredatorConfig,
-		public PreyPredator<MockPreyPredator> {
-		public:
-			MockPreyPredator() {}
-			MockPreyPredator(const MockPreyPredator&) {}
-			MockPreyPredator& operator=(const MockPreyPredator&) {return *this;}
-			MockPreyPredator& operator=(MockPreyPredator&&) {return *this;}
-			MockPreyPredator(MockPreyPredator&&) {}
-
-			// die(), move() and reproduce() are concrete, eat() is mocked
-			MOCK_METHOD(void, eat, (), (override));
-	};
-}
-FPMAS_DEFAULT_JSON(classic::MockPreyPredator)
 #endif

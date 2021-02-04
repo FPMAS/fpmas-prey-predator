@@ -3,80 +3,81 @@
 
 #include "prey_predator.h"
 
+#define CLASSIC_TYPES\
+	classic::Prey::JsonBase,\
+	classic::Predator::JsonBase,\
+	classic::Grass::JsonBase
+
 namespace classic {
-	class Grass : public base::Grass<Grass> {
+	class Grass : public base::Grass, public fpmas::model::GridCellBase<Grass> {
 		public:
 			// Import constructors
-			using base::Grass<Grass>::Grass;
-			
-			static void to_json(nlohmann::json& j, const Grass* grass) {
-				j[0] = grass->_grown;
-				j[1] = grass->grow_count_down;
-			};
+			using base::Grass::Grass;
 
-			static Grass* from_json(const nlohmann::json& j) {
-				Grass* grass = new Grass(
-						j.at(0).get<bool>(),
-						j.at(1).get<int>()
-						);
-				return grass;
-			}
+			/**
+			 * Uses GridCellBase(fpmas::api::model::DiscretePoint location)
+			 * constructor to initialize the Grass cell location.
+			 * The Grass is initialized `grown`.
+			 *
+			 * This constructor is intended to be used in an
+			 * fpmas::api::model::GridCellFactory to generate Grass cells.
+			 */
+			using fpmas::model::GridCellBase<Grass>::GridCellBase;
+
+			static void to_json(nlohmann::json& j, const Grass* grass);
+			static Grass* from_json(const nlohmann::json& j);
 	};
 
-	template<typename AgentType>
-		class PreyPredator : public base::PreyPredator<AgentType, Grass> {
+	class Move : public virtual api::PreyPredator {
+		private:
+			int move_cost;
+		public:
+			Move(int move_cost) : move_cost(move_cost) {}
+			void move() override;
+	};
+
+	class Reproduce : public virtual api::PreyPredator {
+		private:
+			fpmas::random::UniformRealDistribution<> random_real {0, 1};
+			float reproduction_rate;
+
+		public:
+			Reproduce(float reproduction_rate)
+				: reproduction_rate(reproduction_rate) {}
+
+			void reproduce() override;
+	};
+
+	class Prey :
+		public base::PreyPredator<Prey>,
+		public base::Die,
+		public base::prey::Eat,
+		public Move,
+		public Reproduce {
 			public:
-				void move() override {
-					this->_energy -= AgentType::config::move_cost;
-					auto new_location = this->mobilityField().random();
-					//std::cout << this->node()->getId() << " moves from " << this->locationPoint() << " to " << new_location->location() << std::endl;
-					this->moveTo(new_location);
-				};
+				Prey() :
+					base::PreyPredator<Prey>(config::Prey::initial_energy),
+					Move(config::Prey::move_cost),
+					Reproduce(config::Prey::reproduction_rate) {}
 
-				void reproduce() override {
-					if(this->random_real(rd) <= AgentType::config::reproduction_rate) {
-						//std::cout << this->node()->getId() << " reproduces" << std::endl;
-						AgentType* agent = new AgentType;
-						for(auto group : this->groups())
-							group->add(agent);
-						agent->initLocation(this->locationCell());
-					}
-				}
-
-				static void to_json(nlohmann::json& j, const PreyPredator* agent) {
-					j["alive"] = agent->_alive;
-					j["energy"] = agent->_energy;
-				}
-
-				static void from_json(const nlohmann::json& j, PreyPredator* agent) {
-					agent->_alive = j.at("alive").get<bool>();
-					agent->_energy = j.at("energy").get<int>();
-				}
+				static void to_json(nlohmann::json& j, const Prey* prey);
+				static Prey* from_json(const nlohmann::json& j);
 		};
 
-	class Prey : public base::Prey<PreyPredator<Prey>> {
+	class Predator :
+		public base::Predator<Predator>,
+		public base::Die,
+		public base::predator::Eat,
+		public Move,
+		public Reproduce {
 		public:
-			static void to_json(nlohmann::json& j, const Prey* prey) {
-				PreyPredator::to_json(j, prey);
-			}
-			static Prey* from_json(const nlohmann::json& j) {
-				Prey* prey = new Prey;
-				PreyPredator::from_json(j, prey);
-				return prey;
-			}
+			Predator() :
+				base::Predator<Predator>(config::Predator::initial_energy),
+				Move(config::Predator::move_cost),
+				Reproduce(config::Predator::reproduction_rate) {}
 
-	};
-
-	class Predator : public base::Predator<PreyPredator<Predator>> {
-		public:
-			static void to_json(nlohmann::json& j, const Predator* predator) {
-				PreyPredator::to_json(j, predator);
-			}
-			static Predator* from_json(const nlohmann::json& j) {
-				Predator* predator = new Predator;
-				PreyPredator::from_json(j, predator);
-				return predator;
-			}
+			static void to_json(nlohmann::json& j, const Predator* predator);
+			static Predator* from_json(const nlohmann::json& j);
 	};
 
 	struct Mappings {
@@ -93,14 +94,25 @@ namespace classic {
 			};
 	};
 
-	// Mappings are initialized before the base::Model, what is required since the
-	// base::Model constructor uses mappings.
-	// If mappings were Model fields, they would necessarily be initialized
-	// after the base::Model, what produces a seg fault.
-	class Model : private Mappings, public base::Model<Prey, Predator, Grass> {
+	struct Factories {
+		protected:
+			base::GrassFactory<Grass> grass_factory;
+			DefaultSpatialAgentFactory<Prey> prey_factory;
+			DefaultSpatialAgentFactory<Predator> predator_factory;
+	};
+
+	// Mappings and Factories are initialized before the base::Model, what is
+	// required since the base::Model constructor uses mappings.
+	// If mappings and factories were Model fields, they would necessarily be
+	// initialized after the base::Model, what produces a seg fault.
+	class Model : private Mappings, private Factories, public base::Model {
 		public:
-			Model() : base::Model<Prey, Predator, Grass>(
-					prey_mapping, predator_mapping) {}
+			Model() : base::Model(
+					grass_factory,
+					prey_factory,
+					prey_mapping,
+					predator_factory,
+					predator_mapping) {}
 	};
 }
 #endif

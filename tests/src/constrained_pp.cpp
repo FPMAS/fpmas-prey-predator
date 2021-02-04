@@ -1,4 +1,4 @@
-#include "config.h"
+#include "test_config.h"
 #include "fpmas/synchro/hard/hard_sync_mode.h"
 
 using namespace testing;
@@ -34,17 +34,30 @@ TEST(Grass, json) {
 	delete unserialized_grass.get();
 }
 
-class ConstrainedPreyPredatorTest : public PreyPredatorTest<Grass> {
-	protected:
-		MockPreyPredator* mock_prey_predator = new MockPreyPredator;
+typedef PreyPredatorTest<Grass> ConstrainedPreyPredatorTest;
 
-		void SetUp() override {
-			initAgent(mock_prey_predator);
-		}
-};
+namespace constrained {
+	class MockMove :
+		public Move,
+		public base::PreyPredator<MockMove> {
+			public:
+				MockMove() :
+					Move(mock::config::move_cost, PREY),
+					base::PreyPredator<MockMove>(mock::config::initial_energy) {}
+
+				DEFAULT_MOCK_SPECIAL_MEMBERS(MockMove)
+
+					MOCK_METHOD(void, eat, (), (override));
+				MOCK_METHOD(void, reproduce, (), (override));
+				MOCK_METHOD(void, die, (), (override));
+		};
+}
 
 TEST_F(ConstrainedPreyPredatorTest, move) {
-	model.runtime().execute(move_group.jobs());
+	MockMove* mock_prey_predator = new MockMove;
+	this->initAgent(mock_prey_predator);
+
+	this->runtime().execute(move_group.jobs());
 
 	ASSERT_THAT(
 			mock_prey_predator->locationPoint(),
@@ -55,57 +68,84 @@ TEST_F(ConstrainedPreyPredatorTest, move) {
 			);
 	ASSERT_EQ(
 			mock_prey_predator->energy(),
-			MockPreyPredator::config::initial_energy - MockPreyPredator::config::move_cost);
+			mock::config::initial_energy - mock::config::move_cost);
 
 }
 
 TEST_F(ConstrainedPreyPredatorTest, move_partial_availability) {
+	MockMove* mock_prey_predator = new MockMove;
+	this->initAgent(mock_prey_predator);
+
 	// Neighbor cells set up
-	for(Grass* cell : cells) {
+	for(api::Grass* cell : cells) {
 		if(
 				cell->location() == fpmas::api::model::DiscretePoint {3, 2}
 				|| cell->location() == fpmas::api::model::DiscretePoint {1, 2}
 				|| cell->location() == fpmas::api::model::DiscretePoint {2, 3}
 				) {
 			// Those cells are not available
-			cell->state.prey = true;
+			static_cast<constrained::Grass*>(cell)->state.prey = true;
 		}
 		if(cell->location() == fpmas::api::model::DiscretePoint {2, 1})
 			// There is a predator, but the cell is available for a prey
-			cell->state.predator = true;
+			static_cast<constrained::Grass*>(cell)->state.predator = true;
 	}
 
-	model.runtime().execute(move_group.jobs());
+	this->runtime().execute(move_group.jobs());
 
 	ASSERT_THAT(
 			mock_prey_predator->locationPoint(), fpmas::api::model::DiscretePoint(2,1)
 			);
 	ASSERT_EQ(
 			mock_prey_predator->energy(),
-			MockPreyPredator::config::initial_energy - MockPreyPredator::config::move_cost);
+			mock::config::initial_energy - mock::config::move_cost);
 }
 
 TEST_F(ConstrainedPreyPredatorTest, move_no_availability) {
-	// Neighbor cells set up
-	for(Grass* cell : cells)
-		if(!(cell->location() == mock_prey_predator->locationPoint()))
-			cell->state.prey = true;
+	MockMove* mock_prey_predator = new MockMove;
+	this->initAgent(mock_prey_predator);
 
-	model.runtime().execute(move_group.jobs());
+	// Neighbor cells set up
+	for(api::Grass* cell : cells)
+		if(!(cell->location() == mock_prey_predator->locationPoint()))
+			static_cast<constrained::Grass*>(cell)->state.prey = true;
+
+	this->runtime().execute(move_group.jobs());
 
 	ASSERT_THAT(
 			mock_prey_predator->locationPoint(), fpmas::api::model::DiscretePoint(2,2)
 			);
 	ASSERT_EQ(
 			mock_prey_predator->energy(),
-			MockPreyPredator::config::initial_energy - MockPreyPredator::config::move_cost);
+			mock::config::initial_energy - mock::config::move_cost);
 }
 
+namespace constrained {
+	class MockReproduce :
+		public Reproduce,
+		public base::PreyPredator<MockReproduce> {
+			public:
+				MockReproduce() :
+					Reproduce(
+							PREY,
+							mock::config::reproduction_rate),
+					base::PreyPredator<MockReproduce>(mock::config::initial_energy) {}
+
+				DEFAULT_MOCK_SPECIAL_MEMBERS(MockReproduce);
+
+				MOCK_METHOD(void, eat, (), (override));
+				MOCK_METHOD(void, move, (), (override));
+				MOCK_METHOD(void, die, (), (override));
+		};
+}
 TEST_F(ConstrainedPreyPredatorTest, reproduce) {
 	// Ensures that the next call to reproduce will generate a new agent
-	MockPreyPredator::config::reproduction_rate = 1.f;
+	mock::config::reproduction_rate = 1.f;
 
-	model.runtime().execute(reproduce_group.jobs());
+	MockReproduce* mock_prey_predator = new MockReproduce;
+	this->initAgent(mock_prey_predator);
+
+	this->runtime().execute(reproduce_group.jobs());
 
 	ASSERT_THAT(move_group.localAgents(), SizeIs(2));
 	ASSERT_THAT(reproduce_group.localAgents(), SizeIs(2));
@@ -114,11 +154,12 @@ TEST_F(ConstrainedPreyPredatorTest, reproduce) {
 	auto agents = move_group.localAgents();
 	auto new_agent = find_if(
 			agents.begin(), agents.end(),
-			[this] (fpmas::api::model::Agent* agent) -> bool {return agent != mock_prey_predator;}
+			[mock_prey_predator] (fpmas::api::model::Agent* agent) -> bool {return agent != mock_prey_predator;}
 			);
 
+	ASSERT_THAT(*new_agent, WhenDynamicCastTo<MockReproduce*>(NotNull()));
 	ASSERT_THAT(
-			dynamic_cast<fpmas::api::model::GridAgent<Grass>*>(*new_agent)->locationPoint(),
+			dynamic_cast<api::PreyPredator*>(*new_agent)->locationPoint(),
 			AnyOf(
 				fpmas::api::model::DiscretePoint(3, 2),
 				fpmas::api::model::DiscretePoint(1, 2),
@@ -131,24 +172,27 @@ TEST_F(ConstrainedPreyPredatorTest, reproduce) {
 
 TEST_F(ConstrainedPreyPredatorTest, reproduce_partial_availability) {
 	// Ensures that the next call to reproduce will generate a new agent
-	MockPreyPredator::config::reproduction_rate = 1.f;
+	mock::config::reproduction_rate = 1.f;
+
+	MockReproduce* mock_prey_predator = new MockReproduce;
+	this->initAgent(mock_prey_predator);
 
 	// Neighbor cells set up
-	for(Grass* cell : cells) {
+	for(api::Grass* cell : cells) {
 		if(
 				cell->location() == fpmas::api::model::DiscretePoint {3, 2}
 				|| cell->location() == fpmas::api::model::DiscretePoint {1, 2}
 				|| cell->location() == fpmas::api::model::DiscretePoint {2, 3}
 				) {
 			// Those cells are not available
-			cell->state.prey = true;
+			static_cast<constrained::Grass*>(cell)->state.prey = true;
 		}
 		if(cell->location() == fpmas::api::model::DiscretePoint {2, 1})
 			// There is a predator, but the cell is available for a prey
-			cell->state.predator = true;
+			static_cast<constrained::Grass*>(cell)->state.predator = true;
 	}
 
-	model.runtime().execute(reproduce_group.jobs());
+	this->runtime().execute(reproduce_group.jobs());
 
 	ASSERT_THAT(move_group.localAgents(), SizeIs(2));
 	ASSERT_THAT(reproduce_group.localAgents(), SizeIs(2));
@@ -158,11 +202,11 @@ TEST_F(ConstrainedPreyPredatorTest, reproduce_partial_availability) {
 	auto agents = move_group.localAgents();
 	auto new_agent = find_if(
 			agents.begin(), agents.end(),
-			[this] (fpmas::api::model::Agent* agent) -> bool {return agent != mock_prey_predator;}
+			[mock_prey_predator] (fpmas::api::model::Agent* agent) -> bool {return agent != mock_prey_predator;}
 			);
 
 	ASSERT_THAT(
-			dynamic_cast<fpmas::api::model::GridAgent<Grass>*>(*new_agent)->locationPoint(),
+			dynamic_cast<api::PreyPredator*>(*new_agent)->locationPoint(),
 			fpmas::api::model::DiscretePoint(2, 1)
 			);
 	ASSERT_THAT((*new_agent)->groupIds(), UnorderedElementsAre(MOVE, REPRODUCE, DIE, EAT));
@@ -170,10 +214,13 @@ TEST_F(ConstrainedPreyPredatorTest, reproduce_partial_availability) {
 
 TEST_F(ConstrainedPreyPredatorTest, reproduce_no_availability) {
 	// Ensures that the next call to reproduce will generate a new agent
-	MockPreyPredator::config::reproduction_rate = 1.f;
+	mock::config::reproduction_rate = 1.f;
+
+	MockReproduce* mock_prey_predator = new MockReproduce;
+	this->initAgent(mock_prey_predator);
 
 	// Neighbor cells set up
-	for(Grass* cell : cells) {
+	for(api::Grass* cell : cells) {
 		if(
 				cell->location() == fpmas::api::model::DiscretePoint {3, 2}
 				|| cell->location() == fpmas::api::model::DiscretePoint {1, 2}
@@ -181,11 +228,11 @@ TEST_F(ConstrainedPreyPredatorTest, reproduce_no_availability) {
 				|| cell->location() == fpmas::api::model::DiscretePoint {2, 1}
 				) {
 			// All neighbor cells are not available
-			cell->state.prey = true;
+			static_cast<constrained::Grass*>(cell)->state.prey = true;
 		}
 	}
 
-	model.runtime().execute(reproduce_group.jobs());
+	this->runtime().execute(reproduce_group.jobs());
 
 	ASSERT_THAT(move_group.localAgents(), SizeIs(1));
 	ASSERT_THAT(reproduce_group.localAgents(), SizeIs(1));
@@ -194,9 +241,12 @@ TEST_F(ConstrainedPreyPredatorTest, reproduce_no_availability) {
 
 TEST_F(ConstrainedPreyPredatorTest, no_reproduce) {
 	// Prevents agent reproduction
-	MockPreyPredator::config::reproduction_rate = 0.f;
+	mock::config::reproduction_rate = 0.f;
 
-	model.runtime().execute(reproduce_group.jobs());
+	MockReproduce* mock_prey_predator = new MockReproduce;
+	this->initAgent(mock_prey_predator);
+
+	this->runtime().execute(reproduce_group.jobs());
 
 	ASSERT_THAT(move_group.localAgents(), SizeIs(1));
 	ASSERT_THAT(reproduce_group.localAgents(), SizeIs(1));

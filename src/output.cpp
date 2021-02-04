@@ -4,27 +4,27 @@ void print_current_config() {
 	using namespace config;
 	std::cout << "Running PreyPredator model with the following configuration:" << std::endl;
 
-	PP_PRINT_CONFIG(ModelConfig, mode);
-	PP_PRINT_CONFIG(ModelConfig, num_steps);
-	PP_PRINT_CONFIG(ModelConfig, num_preys);
-	PP_PRINT_CONFIG(ModelConfig, num_predators);
-	PP_PRINT_CONFIG(ModelConfig, model_output_file);
-	PP_PRINT_CONFIG(ModelConfig, graph_output_file);
+	PRINT_CONFIG(ModelConfig, mode);
+	PRINT_CONFIG(ModelConfig, num_steps);
+	PRINT_CONFIG(ModelConfig, num_preys);
+	PRINT_CONFIG(ModelConfig, num_predators);
+	PRINT_CONFIG(ModelConfig, model_output_file);
+	PRINT_CONFIG(ModelConfig, graph_output_file);
 
-	PP_PRINT_CONFIG(Grid, width);
-	PP_PRINT_CONFIG(Grid, height);
+	PRINT_CONFIG(Grid, width);
+	PRINT_CONFIG(Grid, height);
 
-	PP_PRINT_CONFIG(Grass, growing_rate);
+	PRINT_CONFIG(Grass, growing_rate);
 
-	PP_PRINT_CONFIG(Prey, reproduction_rate);
-	PP_PRINT_CONFIG(Prey, initial_energy);
-	PP_PRINT_CONFIG(Prey, move_cost);
-	PP_PRINT_CONFIG(Prey, energy_gain);
+	PRINT_CONFIG(Prey, reproduction_rate);
+	PRINT_CONFIG(Prey, initial_energy);
+	PRINT_CONFIG(Prey, move_cost);
+	PRINT_CONFIG(Prey, energy_gain);
 
-	PP_PRINT_CONFIG(Predator, reproduction_rate);
-	PP_PRINT_CONFIG(Predator, initial_energy);
-	PP_PRINT_CONFIG(Predator, move_cost);
-	PP_PRINT_CONFIG(Predator, energy_gain);
+	PRINT_CONFIG(Predator, reproduction_rate);
+	PRINT_CONFIG(Predator, initial_energy);
+	PRINT_CONFIG(Predator, move_cost);
+	PRINT_CONFIG(Predator, energy_gain);
 }
 
 ModelOutput::ModelOutput(
@@ -42,14 +42,14 @@ ModelOutput::ModelOutput(
 			{"prey", [&model] () {
 			std::size_t num_prey = 0;
 			for(auto agent : model.getGroup(MOVE).localAgents())
-				if(dynamic_cast<api::PreyPredator*>(agent)->type() == api::PreyPredator::PREY)
+				if(dynamic_cast<api::Prey*>(agent))
 					num_prey++;
 			return num_prey;
 			}},
 			{"predator", [&model] () {
 			std::size_t num_predator = 0;
 			for(auto agent : model.getGroup(MOVE).localAgents())
-				if(dynamic_cast<api::PreyPredator*>(agent)->type() == api::PreyPredator::PREDATOR)
+				if(dynamic_cast<api::Prey*>(agent))
 					num_predator++;
 			return num_predator;
 			}}) {}

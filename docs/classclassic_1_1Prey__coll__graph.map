@@ -1,0 +1,12 @@
+<map id="classic::Prey" name="classic::Prey">
+<area shape="rect" id="node1" title=" " alt="" coords="748,122,847,149"/>
+<area shape="rect" id="node2" href="$classbase_1_1PreyPredator.html" title=" " alt="" coords="407,5,541,47"/>
+<area shape="rect" id="node3" href="$classapi_1_1PreyPredator.html" title=" " alt="" coords="214,122,337,149"/>
+<area shape="rect" id="node6" href="$classbase_1_1Die.html" title=" " alt="" coords="605,71,684,98"/>
+<area shape="rect" id="node8" href="$classapi_1_1Prey.html" title=" " alt="" coords="437,122,511,149"/>
+<area shape="rect" id="node9" href="$classclassic_1_1Move.html" title=" " alt="" coords="593,173,696,199"/>
+<area shape="rect" id="node10" href="$classclassic_1_1Reproduce.html" title=" " alt="" coords="407,223,541,250"/>
+<area shape="rect" id="node4" title=" " alt="" coords="5,115,144,156"/>
+<area shape="rect" id="node5" title=" " alt="" coords="192,5,359,47"/>
+<area shape="rect" id="node7" href="$classbase_1_1prey_1_1Eat.html" title=" " alt="" coords="589,122,700,149"/>
+</map>

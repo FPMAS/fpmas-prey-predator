@@ -1,8 +1,7 @@
 #ifndef FPMAS_PREY_PREDATOR_H
 #define FPMAS_PREY_PREDATOR_H
 
-#include "fpmas.h"
-#include "yaml-cpp/yaml.h"
+#include "config.h"
 
 #include <algorithm>
 
@@ -10,98 +9,9 @@ FPMAS_DEFINE_GROUPS(MOVE, EAT, REPRODUCE, DIE, GROW)
 
 using namespace fpmas::model;
 
-namespace config {
-	enum Mode {
-		CLASSIC, CONSTRAINED, UNDEFINED
-	};
-
-	namespace Grid {
-		extern int width;
-		extern int height;
-	}
-
-	namespace ModelConfig {
-		extern int num_steps;
-		extern std::size_t num_preys;
-		extern std::size_t num_predators;
-		extern std::string model_output_file;
-		extern std::string graph_output_file;
-		extern Mode mode;
-	}
-
-	struct Grass {
-		static int growing_rate;
-	};
-
-	struct Prey {
-		static float reproduction_rate;
-		static int initial_energy;
-		static int move_cost;
-		static int energy_gain;
-	};
-
-	struct Predator {
-		static float reproduction_rate;
-		static int initial_energy;
-		static int move_cost;
-		static int energy_gain;
-	};
-}
-
-namespace YAML {
-	template<>
-		struct convert<config::Mode> {
-			static Node encode(const config::Mode& mode) {
-				Node node;
-				switch(mode) {
-					case config::CLASSIC:
-						node = "CLASSIC";
-						break;
-					case config::CONSTRAINED:
-						node = "CONSTRAINED";
-						break;
-					default:
-						node ="";
-				}
-				return node;
-			}
-
-			static bool decode(const Node& node, config::Mode& mode) {
-				if(!node.IsScalar()) {
-					return false;
-				}
-				std::string str = node.as<std::string>();
-				if(str == "CLASSIC")
-					mode = config::CLASSIC;
-				else if (str == "CONSTRAINED")
-					mode = config::CONSTRAINED;
-				else
-					mode = config::UNDEFINED;
-				return true;
-			}
-		};
-}
-
 extern fpmas::random::DistributedGenerator<> rd;
 
 namespace api {
-	class PreyPredator : public virtual fpmas::api::model::Agent {
-		public:
-			enum Type {
-				PREY, PREDATOR
-			};
-
-			virtual void move() = 0;
-			virtual void eat() = 0;
-			virtual void reproduce() = 0;
-			virtual void die() = 0;
-
-			virtual bool alive() const = 0;
-			virtual void kill() = 0;
-			virtual int energy() const = 0;
-
-			virtual Type type() const = 0;
-	};
 	class Grass : public virtual fpmas::api::model::GridCell {
 		public:
 			virtual void grow() = 0;
@@ -109,28 +19,47 @@ namespace api {
 			virtual int growCountDown() const = 0;
 			virtual void reset() = 0;
 	};
+
+	class PreyPredator;
+	class AgentFactory {
+		public:
+			virtual PreyPredator* build() const = 0;
+	};
+
+	class PreyPredator : public virtual fpmas::api::model::GridAgent<Grass> {
+		public:
+			virtual void move() = 0;
+			virtual void eat() = 0;
+			virtual void reproduce() = 0;
+			virtual void die() = 0;
+
+			virtual bool alive() const = 0;
+			virtual void kill() = 0;
+			virtual const int& energy() const = 0;
+			virtual int& energy() = 0;
+
+			virtual const AgentFactory& agentFactory() const = 0;
+
+			virtual fpmas::model::Neighbors<Grass> neighborCells() = 0;
+	};
+	class Prey : public virtual PreyPredator {
+	};
+
+	class Predator : public virtual PreyPredator {
+		public:
+			virtual fpmas::model::Neighbors<Prey> reachablePreys() = 0;
+	};
 }
 
 namespace base {
-	template<typename GrassType>
-	class Grass : public api::Grass, public fpmas::model::GridCellBase<GrassType> {
+	class Grass : public api::Grass {
 		protected:
-			bool _grown = true;
-			int grow_count_down = config::Grass::growing_rate;
+			bool _grown;
+			int grow_count_down;
 
 		public:
-			/**
-			 * Uses GridCellBase(fpmas::api::model::DiscretePoint location)
-			 * constructor to initialize the Grass cell location.
-			 * The Grass is initialized `grown`.
-			 *
-			 * This constructor is intended to be used in an
-			 * fpmas::api::model::GridCellFactory to generate Grass cells.
-			 */
-			using fpmas::model::GridCellBase<GrassType>::GridCellBase;
-
-			Grass() : fpmas::model::GridCellBase<GrassType>::GridCellBase() {}
-
+			Grass() : Grass(true, config::Grass::growing_rate) {}
+			
 			/**
 			 * Base Grass constructor.
 			 *
@@ -143,18 +72,7 @@ namespace base {
 			Grass(bool grown, int grow_count_down)
 				: _grown(grown), grow_count_down(grow_count_down) {}
 
-
-
-			void grow() override {
-				if(!_grown) {
-					//std::cout << "growing grass " << this->node()->getId() << std::endl;
-					grow_count_down--;
-					if(grow_count_down == 0) {
-						grow_count_down = config::Grass::growing_rate;
-						_grown = true;
-					}
-				}
-			};
+			void grow() override;
 
 			bool grown() const override {
 				return _grown;
@@ -168,42 +86,28 @@ namespace base {
 			}
 	};
 
-	/**
-	 * Base PreyPredator implementation.
-	 *
-	 * This is a abstract class, that only implements the die() behavior.
-	 *
-	 * @tparam AgentType Most derived type from this class (concrete class)
-	 * @tparam GrassType Most derived api::Grass implementation
-	 */
-	template<typename AgentType, typename GrassType>
-		class PreyPredator : public api::PreyPredator, public GridAgent<AgentType, GrassType> {
-			protected:
-				static const VonNeumannRange<VonNeumannGrid<GrassType>> range;
-				PreyPredator() : GridAgent<AgentType, GrassType>(this->range, this->range) {}
-
-				fpmas::random::UniformRealDistribution<> random_real {0, 1};
-
+	template<typename AgentType>
+		class AgentFactory : public api::AgentFactory {
 			public:
+				api::PreyPredator* build() const override {
+					return new AgentType;
+				}
+		};
+
+	template<typename AgentType>
+		class PreyPredator : public virtual api::PreyPredator, public fpmas::model::GridAgent<AgentType, api::Grass> {
+			private:
 				bool _alive = true;
 				int _energy = AgentType::config::initial_energy;
+				AgentFactory<AgentType> agent_factory;
 
-				Type type() const override {
-					return AgentType::agent_type;
-				}
+			protected:
+				static const VonNeumannRange<VonNeumannGrid<api::Grass>> range;
+				PreyPredator(int initial_energy) :
+					fpmas::model::GridAgent<AgentType, api::Grass>(this->range, this->range),
+					_energy(initial_energy) {}
 
-				void die() override {
-					if(energy() <= 0)
-						kill();
-					if(!alive()) {
-						//std::cout << this->node()->getId() << " dies" << std::endl;
-						auto groups = this->groups();
-
-						for(auto group : groups)
-							group->remove(this);
-					}
-				}
-
+			public:
 				bool alive() const override {
 					return _alive;
 				}
@@ -212,117 +116,96 @@ namespace base {
 					_alive=false;
 				}
 
-				int energy() const override {
+				const int& energy() const override {
 					return _energy;
 				}
+				int& energy() override {
+					return _energy;
+				}
+
+				const api::AgentFactory& agentFactory() const override {
+					return agent_factory;
+				}
+
+				static void to_json(nlohmann::json& j, const PreyPredator* agent) {
+					j["alive"] = agent->_alive;
+					j["energy"] = agent->_energy;
+				}
+
+				static void from_json(const nlohmann::json& j, PreyPredator* agent) {
+					agent->_alive = j.at("alive").get<bool>();
+					agent->_energy = j.at("energy").get<int>();
+				}
+
+				fpmas::model::Neighbors<api::Grass> neighborCells() override {
+					return this->mobilityField();
+				}
 		};
-	template<typename AgentType, typename GrassType>
-		const VonNeumannRange<VonNeumannGrid<GrassType>> PreyPredator<AgentType, GrassType>::range(1);
 
-	/**
-	 * Base Prey implementation.
-	 *
-	 * The provided PreyPredatorType implementation must implement move(),
-	 * reproduce() and die(), so that this class only implements the prey specific
-	 * eat() behavior.
-	 */
-	template<typename PreyPredatorType>
-	class Prey : public PreyPredatorType {
+	template<typename AgentType>
+	class Predator : public virtual api::Predator, public PreyPredator<AgentType> {
 		public:
-			static const api::PreyPredator::Type agent_type = api::PreyPredator::PREY;
-			typedef config::Prey config;
-			
-			void eat() override {
-				api::Grass* cell = this->locationCell();
-				fpmas::model::AcquireGuard acquire(cell);
+			using base::PreyPredator<AgentType>::PreyPredator;
 
-				if(cell->grown()) {
-					//std::cout << "[prey " << this->node()->getId() << "] eats " << cell->node()->getId() << "(" << cell->node()->state() << ")" << std::endl;
-					cell->reset();
-					this->_energy+=config::energy_gain;
-				}
-			};
+			fpmas::model::Neighbors<api::Prey> reachablePreys() override {
+				return this->template perceptions<api::Prey>();
+			}
 	};
 
-	template<typename PreyPredatorType>
-	class Predator : public PreyPredatorType {
-		public:
-			static const api::PreyPredator::Type agent_type = api::PreyPredator::PREDATOR;
-			typedef config::Predator config;
-
-			void eat() override {
-				auto preys = this->template perceptions<api::PreyPredator>()
-					.filter([] (api::PreyPredator* prey_predator) {return prey_predator->type() == api::PreyPredator::PREY;});
-				if(preys.count() > 0) {
-					auto prey = preys.random();
-					fpmas::model::AcquireGuard acq(prey);
-
-					if(prey->alive()) {
-						//std::cout << this->node()->getId() << " eats " << prey->node()->getId() << "(" << prey->node()->state() << ")" << std::endl;
-						this->_energy+=config::energy_gain;
-						prey->kill();
-					}
-				}
-			};
+	class Die : public virtual api::PreyPredator {
+		void die() override;
 	};
 
-	template<typename Prey, typename Predator, typename Grass>
-		class Model : public fpmas::model::GridModel<fpmas::synchro::HardSyncMode, Grass> {
-			private:
-				fpmas::model::GridCellFactory<Grass> cell_factory;
-				typename VonNeumannGrid<Grass>::Builder grid {
-					cell_factory, config::Grid::width, config::Grid::height
-				};
+	namespace prey {
+		class Eat : public api::Prey {
+			void eat() override;
+		};
+	}
 
-				Behavior<api::Grass> grow_behavior {&api::Grass::grow};
-
-				// Initializes agent groups and behaviors.
-				// Preys and predator are mixed in each group.
-				Behavior<api::PreyPredator> move_behavior{
-					&api::PreyPredator::move};
-				Behavior<api::PreyPredator> eat_behavior{
-					&api::PreyPredator::eat};
-				Behavior<api::PreyPredator> reproduce_behavior{
-					&api::PreyPredator::reproduce};
-				Behavior<api::PreyPredator> die_behavior{
-					&api::PreyPredator::die};
-
+	namespace predator {
+		class Eat : public virtual api::Predator {
 			public:
-				Model(
-						fpmas::api::model::GridAgentMapping& prey_mapping,
-						fpmas::api::model::GridAgentMapping& predator_mapping
-					 ) {
-					// Builds a distributed grid
-					auto cells = grid.build(*this);
-
-					auto& grow = this->buildGroup(GROW, grow_behavior);
-					for(auto grass : cells)
-						grow.add(grass);
-
-					auto& move = this->buildMoveGroup(MOVE, move_behavior);
-					auto& eat = this->buildGroup(EAT, eat_behavior);
-					auto& reproduce = this->buildMoveGroup(REPRODUCE, reproduce_behavior);
-					auto& die = this->buildGroup(DIE, die_behavior);
-
-					// Distributed Agent Builder
-					GridAgentBuilder<Grass> agent_builder;
-
-					// Initializes preys (distributed process)
-					DefaultSpatialAgentFactory<Prey> prey_factory;
-					agent_builder.build(*this, {move, eat, reproduce, die}, prey_factory, prey_mapping);
-
-					// Initializes predators (distributed process)
-					DefaultSpatialAgentFactory<Predator> predator_factory;
-					agent_builder.build(*this, {move, eat, reproduce, die}, predator_factory, predator_mapping);
-
-					// Schedules agent execution
-					this->scheduler().schedule(0, 20, this->loadBalancingJob());
-					this->scheduler().schedule(0.1, 1, grow.jobs());
-					this->scheduler().schedule(0.2, 1, move.jobs());
-					this->scheduler().schedule(0.3, 1, eat.jobs());
-					this->scheduler().schedule(0.4, 1, reproduce.jobs());
-					this->scheduler().schedule(0.5, 1, die.jobs());
-				}
+			void eat() override;
 		};
+	}
+
+	template<typename AgentType>
+		const VonNeumannRange<VonNeumannGrid<api::Grass>> PreyPredator<AgentType>::range(1);
+
+	template<typename GrassType>
+		class GrassFactory : public fpmas::api::model::GridCellFactory<api::Grass> {
+			api::Grass* build(fpmas::api::model::DiscretePoint point) {
+				return new GrassType(point);
+			}
+		};
+
+	class ModelBase : public fpmas::model::GridModel<fpmas::synchro::HardSyncMode, api::Grass> {
+		protected:
+			Behavior<api::Grass> grow_behavior {&api::Grass::grow};
+
+			// Initializes agent groups and behaviors.
+			// Preys and predator are mixed in each group.
+			Behavior<api::PreyPredator> move_behavior{
+				&api::PreyPredator::move};
+			Behavior<api::PreyPredator> eat_behavior{
+				&api::PreyPredator::eat};
+			Behavior<api::PreyPredator> reproduce_behavior{
+				&api::PreyPredator::reproduce};
+			Behavior<api::PreyPredator> die_behavior{
+				&api::PreyPredator::die};
+	};
+
+	class Model : public ModelBase {
+		private:
+			typename VonNeumannGrid<api::Grass>::Builder grid;
+		public:
+			Model(
+					fpmas::api::model::GridCellFactory<api::Grass>& grass_factory,
+					fpmas::api::model::SpatialAgentFactory<api::Grass>& prey_factory,
+					fpmas::api::model::GridAgentMapping& prey_mapping,
+					fpmas::api::model::SpatialAgentFactory<api::Grass>& predator_factory,
+					fpmas::api::model::GridAgentMapping& predator_mapping
+				 );
+	};
 }
 #endif

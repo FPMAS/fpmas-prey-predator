@@ -2,27 +2,87 @@
 
 fpmas::random::DistributedGenerator<> rd;
 
-namespace config {
-	int Grid::width = 100;
-	int Grid::height = 100;
+namespace base {
+	void Grass::grow() {
+		if(!_grown) {
+			grow_count_down--;
+			if(grow_count_down == 0) {
+				grow_count_down = config::Grass::growing_rate;
+				_grown = true;
+			}
+		}
+	}
 
-	int ModelConfig::num_steps = 100;
-	std::size_t ModelConfig::num_preys = 100;
-	std::size_t ModelConfig::num_predators = 20;
-	Mode ModelConfig::mode = CLASSIC;
+	void Die::die() {
+		if(energy() <= 0)
+			kill();
+		if(!alive()) {
+			auto groups = this->groups();
 
-	std::string ModelConfig::model_output_file = "model.csv";
-	std::string ModelConfig::graph_output_file = "graph.*.csv";
+			for(auto group : groups)
+				group->remove(this);
+		}
+	}
+	namespace prey {
+		void Eat::eat() {
+			api::Grass* cell = this->locationCell();
+			fpmas::model::AcquireGuard acquire(cell);
 
-	int Grass::growing_rate = 8;
+			if(cell->grown()) {
+				cell->reset();
+				this->energy()+=config::Prey::energy_gain;
+			}
+		}
+	}
+	namespace predator {
+		void Eat::eat() {
+			auto preys = this->reachablePreys();
+			if(preys.count() > 0) {
+				auto prey = preys.random();
+				fpmas::model::AcquireGuard acq(prey);
 
-	float Prey::reproduction_rate = .05;
-	int Prey::initial_energy = 4;
-	int Prey::move_cost = 1;
-	int Prey::energy_gain = 4;
+				if(prey->alive()) {
+					this->energy()+=config::Predator::energy_gain;
+					prey->kill();
+				}
+			}
+		}
+	}
 
-	float Predator::reproduction_rate = .04;
-	int Predator::initial_energy = 20;
-	int Predator::move_cost = 1;
-	int Predator::energy_gain = 20;
+	Model::Model(
+			fpmas::api::model::GridCellFactory<api::Grass>& grass_factory,
+			fpmas::api::model::SpatialAgentFactory<api::Grass>& prey_factory,
+			fpmas::api::model::GridAgentMapping& prey_mapping,
+			fpmas::api::model::SpatialAgentFactory<api::Grass>& predator_factory,
+			fpmas::api::model::GridAgentMapping& predator_mapping
+			) : grid(grass_factory, config::Grid::width, config::Grid::height) {
+		// Builds a distributed grid
+		auto cells = this->grid.build(*this);
+
+		auto& grow = this->buildGroup(GROW, this->grow_behavior);
+		for(auto grass : cells)
+			grow.add(grass);
+
+		auto& move = this->buildMoveGroup(MOVE, this->move_behavior);
+		auto& eat = this->buildGroup(EAT, this->eat_behavior);
+		auto& reproduce = this->buildMoveGroup(REPRODUCE, this->reproduce_behavior);
+		auto& die = this->buildGroup(DIE, this->die_behavior);
+
+		// Distributed Agent Builder
+		GridAgentBuilder<api::Grass> agent_builder;
+
+		// Initializes preys (distributed process)
+		agent_builder.build(*this, {move, eat, reproduce, die}, prey_factory, prey_mapping);
+
+		// Initializes predators (distributed process)
+		agent_builder.build(*this, {move, eat, reproduce, die}, predator_factory, predator_mapping);
+
+		// Schedules agent execution
+		this->scheduler().schedule(0, 20, this->loadBalancingJob());
+		this->scheduler().schedule(0.1, 1, grow.jobs());
+		this->scheduler().schedule(0.2, 1, move.jobs());
+		this->scheduler().schedule(0.3, 1, eat.jobs());
+		this->scheduler().schedule(0.4, 1, reproduce.jobs());
+		this->scheduler().schedule(0.5, 1, die.jobs());
+	}
 }

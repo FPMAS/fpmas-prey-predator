@@ -1,14 +1,14 @@
 #include "gtest/gtest.h"
 
-#include "config.h"
+#include "test_config.h"
 
 int main(int argc, char **argv) {
 	FPMAS_REGISTER_AGENT_TYPES(
-			GridCell::JsonBase,
+			//GridCell::JsonBase,
 			classic::Prey::JsonBase,
 			classic::Predator::JsonBase,
-			classic::Grass::JsonBase,
-			classic::MockPreyPredator::JsonBase);
+			classic::Grass::JsonBase
+			);
 
 	fpmas::init(argc, argv);
 

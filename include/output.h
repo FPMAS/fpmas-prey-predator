@@ -5,7 +5,7 @@
 #include "prey_predator.h"
 #include <fstream>
 
-#define PP_PRINT_CONFIG(CLASS, PARAM) \
+#define PRINT_CONFIG(CLASS, PARAM) \
 	std::cout << "\t- " #CLASS "::" #PARAM ": " << CLASS::PARAM << std::endl;
 
 void print_current_config();
