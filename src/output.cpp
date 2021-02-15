@@ -49,7 +49,7 @@ ModelOutput::ModelOutput(
 			{"predator", [&model] () {
 			std::size_t num_predator = 0;
 			for(auto agent : model.getGroup(MOVE).localAgents())
-				if(dynamic_cast<api::Prey*>(agent))
+				if(dynamic_cast<api::Predator*>(agent))
 					num_predator++;
 			return num_predator;
 			}}) {}
