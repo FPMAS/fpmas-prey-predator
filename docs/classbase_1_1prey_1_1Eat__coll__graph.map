@@ -1,6 +1,0 @@
-<map id="base::prey::Eat" name="base::prey::Eat">
-<area shape="rect" id="node1" title=" " alt="" coords="19,244,130,271"/>
-<area shape="rect" id="node2" href="$classapi_1_1Prey.html" title=" " alt="" coords="37,169,112,196"/>
-<area shape="rect" id="node3" href="$classapi_1_1PreyPredator.html" title=" " alt="" coords="13,95,136,121"/>
-<area shape="rect" id="node4" title=" " alt="" coords="5,5,144,47"/>
-</map>

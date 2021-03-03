@@ -25,6 +25,7 @@ namespace base {
 	}
 	namespace prey {
 		void Eat::eat() {
+			FPMAS_LOGD(this->model()->getMpiCommunicator().getRank(), "PREY", "Prey %s eats", FPMAS_C_STR(this->node()->getId()));
 			api::Grass* cell = this->locationCell();
 			fpmas::model::AcquireGuard acquire(cell);
 
@@ -55,28 +56,11 @@ namespace base {
 			fpmas::api::model::GridAgentMapping& prey_mapping,
 			fpmas::api::model::SpatialAgentFactory<api::Grass>& predator_factory,
 			fpmas::api::model::GridAgentMapping& predator_mapping
-			) : grid(grass_factory, config::Grid::width, config::Grid::height) {
-		// Builds a distributed grid
-		auto cells = this->grid.build(*this);
-
-		auto& grow = this->buildGroup(GROW, this->grow_behavior);
-		for(auto grass : cells)
-			grow.add(grass);
-
-		auto& move = this->buildMoveGroup(MOVE, this->move_behavior);
-		auto& eat = this->buildGroup(EAT, this->eat_behavior);
-		auto& reproduce = this->buildMoveGroup(REPRODUCE, this->reproduce_behavior);
-		auto& die = this->buildGroup(DIE, this->die_behavior);
-
-		// Distributed Agent Builder
-		GridAgentBuilder<api::Grass> agent_builder;
-
-		// Initializes preys (distributed process)
-		agent_builder.build(*this, {move, eat, reproduce, die}, prey_factory, prey_mapping);
-
-		// Initializes predators (distributed process)
-		agent_builder.build(*this, {move, eat, reproduce, die}, predator_factory, predator_mapping);
-
+			) :
+		grid(grass_factory, config::Grid::width, config::Grid::height),
+		prey_factory(prey_factory), prey_mapping(prey_mapping),
+		predator_factory(predator_factory), predator_mapping(predator_mapping)
+	{
 		// Schedules agent execution
 		this->scheduler().schedule(0, 20, this->loadBalancingJob());
 		this->scheduler().schedule(0.1, 1, grow.jobs());
@@ -84,5 +68,21 @@ namespace base {
 		this->scheduler().schedule(0.3, 1, eat.jobs());
 		this->scheduler().schedule(0.4, 1, reproduce.jobs());
 		this->scheduler().schedule(0.5, 1, die.jobs());
+	}
+
+	void Model::init() {
+		// Builds a distributed grid
+		auto cells = this->grid.build(*this);
+		for(auto grass : cells)
+			grow.add(grass);
+
+		// Distributed Agent Builder
+		GridAgentBuilder<api::Grass> agent_builder;
+
+		// Initializes preys (distributed process)
+		agent_builder.build(*this, {move, eat, reproduce, die}, this->prey_factory, this->prey_mapping);
+
+		// Initializes predators (distributed process)
+		agent_builder.build(*this, {move, eat, reproduce, die}, this->predator_factory, this->predator_mapping);
 	}
 }

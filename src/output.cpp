@@ -11,6 +11,13 @@ void print_current_config() {
 	PRINT_CONFIG(ModelConfig, model_output_file);
 	PRINT_CONFIG(ModelConfig, graph_output_file);
 
+	PRINT_CONFIG(Breakpoint, load_from);
+	PRINT_CONFIG(Breakpoint, enable);
+	PRINT_CONFIG(Breakpoint, file);
+	PRINT_CONFIG(Breakpoint, start);
+	PRINT_CONFIG(Breakpoint, end);
+	PRINT_CONFIG(Breakpoint, period);
+
 	PRINT_CONFIG(Grid, width);
 	PRINT_CONFIG(Grid, height);
 
@@ -27,8 +34,7 @@ void print_current_config() {
 	PRINT_CONFIG(Predator, energy_gain);
 }
 
-ModelOutput::ModelOutput(
-		fpmas::api::model::Model& model)
+ModelOutput::ModelOutput(fpmas::api::model::Model& model)
 	: FileOutput(config::ModelConfig::model_output_file), DistributedCsvOutput(
 			model.getMpiCommunicator(), 0, this->output_file,
 			{"time", [&model] () {return model.runtime().currentDate();}},
@@ -54,16 +60,10 @@ ModelOutput::ModelOutput(
 			return num_predator;
 			}}) {}
 
-std::string GraphOutput::file_name(fpmas::api::communication::MpiCommunicator& comm) {
-	std::size_t replace = config::ModelConfig::graph_output_file.find('*');
-	std::string filename = config::ModelConfig::graph_output_file;
-	filename.replace(
-			replace, 1, std::to_string(comm.getRank()));
-	return filename;
-}
-
 GraphOutput::GraphOutput(fpmas::api::model::Model& model)
-	: FileOutput(file_name(model.getMpiCommunicator())), DistributedCsvOutput(
+	: FileOutput(fpmas::utils::format(
+				config::ModelConfig::graph_output_file,
+				model.getMpiCommunicator().getRank())), DistributedCsvOutput(
 			model.getMpiCommunicator(), this->output_file,
 			{"time", [&model] () {return model.runtime().currentDate();}},
 			{"local_nodes", [&model] () {return model.graph().getNodes().size();}},

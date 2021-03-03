@@ -4,15 +4,6 @@
 #include "fpmas.h"
 #include "yaml-cpp/yaml.h"
 
-namespace nlohmann {
-	using fpmas::api::model::AgentPtr;
-	template<>
-		struct adl_serializer<AgentPtr> {
-			static void to_json(json& j, const AgentPtr& data);
-			static AgentPtr from_json(const json& j);
-		};
-}
-
 namespace config {
 	enum Mode {
 		CLASSIC, CONSTRAINED, UNDEFINED
@@ -30,6 +21,15 @@ namespace config {
 		extern std::string model_output_file;
 		extern std::string graph_output_file;
 		extern Mode mode;
+	}
+
+	namespace Breakpoint {
+		extern std::string load_from;
+		extern bool enable;
+		extern std::string file;
+		extern fpmas::api::scheduler::TimeStep start;
+		extern fpmas::api::scheduler::TimeStep end;
+		extern fpmas::api::scheduler::Period period;
 	}
 
 	struct Grass {

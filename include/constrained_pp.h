@@ -154,10 +154,10 @@ namespace constrained {
 		public:
 		Model() : base::Model(
 					grass_factory,
-					prey_factory,
-					prey_mapping,
-					predator_factory,
-					predator_mapping) {}
+					Factories::prey_factory,
+					Mappings::prey_mapping,
+					Factories::predator_factory,
+					Mappings::predator_mapping) {}
 	};
 }
 #endif

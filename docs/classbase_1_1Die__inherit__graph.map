@@ -1,9 +1,0 @@
-<map id="base::Die" name="base::Die">
-<area shape="rect" id="node1" title=" " alt="" coords="233,169,311,196"/>
-<area shape="rect" id="node4" href="$classclassic_1_1Predator.html" title=" " alt="" coords="5,244,125,271"/>
-<area shape="rect" id="node5" href="$classclassic_1_1Prey.html" title=" " alt="" coords="149,244,248,271"/>
-<area shape="rect" id="node6" href="$classconstrained_1_1Predator.html" title=" " alt="" coords="272,244,419,271"/>
-<area shape="rect" id="node7" href="$classconstrained_1_1Prey.html" title=" " alt="" coords="443,244,567,271"/>
-<area shape="rect" id="node2" href="$classapi_1_1PreyPredator.html" title=" " alt="" coords="211,95,333,121"/>
-<area shape="rect" id="node3" title=" " alt="" coords="203,5,341,47"/>
-</map>

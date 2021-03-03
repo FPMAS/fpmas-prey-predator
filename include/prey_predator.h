@@ -181,9 +181,7 @@ namespace base {
 
 	class ModelBase : public fpmas::model::GridModel<fpmas::synchro::HardSyncMode, api::Grass> {
 		protected:
-			Behavior<api::Grass> grow_behavior {&api::Grass::grow};
-
-			// Initializes agent groups and behaviors.
+			// Initializes agent behaviors.
 			// Preys and predator are mixed in each group.
 			Behavior<api::PreyPredator> move_behavior{
 				&api::PreyPredator::move};
@@ -198,6 +196,19 @@ namespace base {
 	class Model : public ModelBase {
 		private:
 			typename VonNeumannGrid<api::Grass>::Builder grid;
+			Behavior<api::Grass> grow_behavior {&api::Grass::grow};
+
+			fpmas::api::model::AgentGroup& grow {buildGroup(GROW, this->grow_behavior)};
+			fpmas::api::model::AgentGroup& move {buildMoveGroup(MOVE, this->move_behavior)};
+			fpmas::api::model::AgentGroup& eat {buildGroup(EAT, this->eat_behavior)};
+			fpmas::api::model::AgentGroup& reproduce {buildMoveGroup(REPRODUCE, this->reproduce_behavior)};
+			fpmas::api::model::AgentGroup& die {buildGroup(DIE, this->die_behavior)};
+
+			fpmas::api::model::SpatialAgentFactory<api::Grass>& prey_factory;
+			fpmas::api::model::GridAgentMapping& prey_mapping;
+			fpmas::api::model::SpatialAgentFactory<api::Grass>& predator_factory;
+			fpmas::api::model::GridAgentMapping& predator_mapping;
+
 		public:
 			Model(
 					fpmas::api::model::GridCellFactory<api::Grass>& grass_factory,
@@ -206,6 +217,8 @@ namespace base {
 					fpmas::api::model::SpatialAgentFactory<api::Grass>& predator_factory,
 					fpmas::api::model::GridAgentMapping& predator_mapping
 				 );
+
+			void init();
 	};
 }
 #endif

@@ -10,7 +10,9 @@
 
 void print_current_config();
 
-using namespace fpmas::output;
+using fpmas::io::DistributedCsvOutput;
+using fpmas::io::Local;
+using fpmas::io::Reduce;
 
 class FileOutput {
 	protected:
@@ -31,9 +33,6 @@ class GraphOutput :
 	public FileOutput,
 	public DistributedCsvOutput<
 	Local<fpmas::api::runtime::Date>, Local<std::size_t>, Local<std::size_t>, Reduce<std::size_t>, Reduce<std::size_t>> {
-		private:
-			std::string file_name(fpmas::api::communication::MpiCommunicator& comm);
-
 		public:
 			GraphOutput(fpmas::api::model::Model& model);
 	};

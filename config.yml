@@ -8,7 +8,14 @@ ModelConfig:
     num_preys: 50
     num_predators: 20
     model_output_file: model.csv
-    graph_output_file: graph.*.csv
+    graph_output_file: graph.%r.csv
+
+Breakpoint:
+    load_from: ""
+    enable: false
+    file: breakpoint.%r.bin
+    start: 0
+    period: 10
 
 Prey:
     initial_energy: 4

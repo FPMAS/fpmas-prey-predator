@@ -1,8 +1,10 @@
 #include "config.h"
 
-#define LOAD_FROM_YML(YML_FILE, CLASS, STATIC_FIELD) \
-	CLASS::STATIC_FIELD = YML_FILE[#CLASS][#STATIC_FIELD]\
-		.as<typeof(CLASS::STATIC_FIELD)>();
+#define LOAD_FROM_YML(YML_FILE, NAMESPACE, STATIC_FIELD) \
+	if(YML_FILE[#NAMESPACE])\
+		if(YML_FILE[#NAMESPACE][#STATIC_FIELD])\
+			NAMESPACE::STATIC_FIELD = YML_FILE[#NAMESPACE][#STATIC_FIELD]\
+				.as<typeof(NAMESPACE::STATIC_FIELD)>();
 
 namespace config {
 	int Grid::width = 100;
@@ -13,8 +15,16 @@ namespace config {
 	std::size_t ModelConfig::num_predators = 20;
 	Mode ModelConfig::mode = CLASSIC;
 
+	std::string Breakpoint::load_from = "";
+	bool Breakpoint::enable = false;
+	std::string Breakpoint::file = "breakpoint.%r.%t.msgpack";
+	fpmas::api::scheduler::TimeStep Breakpoint::start = 0;
+	fpmas::api::scheduler::TimeStep Breakpoint::end
+		= std::numeric_limits<fpmas::api::scheduler::TimeStep>::max();
+	fpmas::api::scheduler::Period Breakpoint::period = 10;
+
 	std::string ModelConfig::model_output_file = "model.csv";
-	std::string ModelConfig::graph_output_file = "graph.*.csv";
+	std::string ModelConfig::graph_output_file = "graph.%r.csv";
 
 	int Grass::growing_rate = 8;
 
@@ -76,6 +86,13 @@ void load_static_config(std::string config_file) {
 	LOAD_FROM_YML(config, ModelConfig, model_output_file);
 	LOAD_FROM_YML(config, ModelConfig, graph_output_file);
 	LOAD_FROM_YML(config, ModelConfig, mode);
+
+	LOAD_FROM_YML(config, Breakpoint, load_from);
+	LOAD_FROM_YML(config, Breakpoint, enable);
+	LOAD_FROM_YML(config, Breakpoint, file);
+	LOAD_FROM_YML(config, Breakpoint, start);
+	LOAD_FROM_YML(config, Breakpoint, end);
+	LOAD_FROM_YML(config, Breakpoint, period);
 
 	LOAD_FROM_YML(config, Prey, reproduction_rate);
 	LOAD_FROM_YML(config, Prey, initial_energy);
