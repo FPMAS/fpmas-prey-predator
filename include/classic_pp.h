@@ -80,39 +80,9 @@ namespace classic {
 			static Predator* from_json(const nlohmann::json& j);
 	};
 
-	struct Mappings {
-		protected:
-			UniformGridAgentMapping prey_mapping {
-				config::Grid::width,
-					config::Grid::height,
-					config::ModelConfig::num_preys
-			};
-			UniformGridAgentMapping predator_mapping {
-				config::Grid::width,
-					config::Grid::height,
-					config::ModelConfig::num_predators
-			};
-	};
-
-	struct Factories {
-		protected:
-			base::GrassFactory<Grass> grass_factory;
-			DefaultSpatialAgentFactory<Prey> prey_factory;
-			DefaultSpatialAgentFactory<Predator> predator_factory;
-	};
-
-	// Mappings and Factories are initialized before the base::Model, what is
-	// required since the base::Model constructor uses mappings.
-	// If mappings and factories were Model fields, they would necessarily be
-	// initialized after the base::Model, what produces a seg fault.
-	class Model : private Mappings, private Factories, public base::Model {
+	class Model : public base::Model {
 		public:
-			Model() : base::Model(
-					grass_factory,
-					Factories::prey_factory,
-					Mappings::prey_mapping,
-					Factories::predator_factory,
-					Mappings::predator_mapping) {}
+			void init() override;
 	};
 }
 #endif

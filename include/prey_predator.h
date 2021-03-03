@@ -183,6 +183,7 @@ namespace base {
 		protected:
 			// Initializes agent behaviors.
 			// Preys and predator are mixed in each group.
+			Behavior<api::Grass> grow_behavior {&api::Grass::grow};
 			Behavior<api::PreyPredator> move_behavior{
 				&api::PreyPredator::move};
 			Behavior<api::PreyPredator> eat_behavior{
@@ -191,34 +192,27 @@ namespace base {
 				&api::PreyPredator::reproduce};
 			Behavior<api::PreyPredator> die_behavior{
 				&api::PreyPredator::die};
+
+			fpmas::api::model::AgentGroup& grow_group {buildGroup(GROW, this->grow_behavior)};
+			fpmas::api::model::MoveAgentGroup<api::Grass>& move_group {buildMoveGroup(MOVE, this->move_behavior)};
+			fpmas::api::model::AgentGroup& eat_group {buildGroup(EAT, this->eat_behavior)};
+			fpmas::api::model::MoveAgentGroup<api::Grass>& reproduce_group {buildMoveGroup(REPRODUCE, this->reproduce_behavior)};
+			fpmas::api::model::AgentGroup& die_group {buildGroup(DIE, this->die_behavior)};
 	};
 
 	class Model : public ModelBase {
-		private:
-			typename VonNeumannGrid<api::Grass>::Builder grid;
-			Behavior<api::Grass> grow_behavior {&api::Grass::grow};
-
-			fpmas::api::model::AgentGroup& grow {buildGroup(GROW, this->grow_behavior)};
-			fpmas::api::model::AgentGroup& move {buildMoveGroup(MOVE, this->move_behavior)};
-			fpmas::api::model::AgentGroup& eat {buildGroup(EAT, this->eat_behavior)};
-			fpmas::api::model::AgentGroup& reproduce {buildMoveGroup(REPRODUCE, this->reproduce_behavior)};
-			fpmas::api::model::AgentGroup& die {buildGroup(DIE, this->die_behavior)};
-
-			fpmas::api::model::SpatialAgentFactory<api::Grass>& prey_factory;
-			fpmas::api::model::GridAgentMapping& prey_mapping;
-			fpmas::api::model::SpatialAgentFactory<api::Grass>& predator_factory;
-			fpmas::api::model::GridAgentMapping& predator_mapping;
-
 		public:
-			Model(
+			Model();
+
+			void init(
 					fpmas::api::model::GridCellFactory<api::Grass>& grass_factory,
 					fpmas::api::model::SpatialAgentFactory<api::Grass>& prey_factory,
 					fpmas::api::model::GridAgentMapping& prey_mapping,
 					fpmas::api::model::SpatialAgentFactory<api::Grass>& predator_factory,
 					fpmas::api::model::GridAgentMapping& predator_mapping
-				 );
+					);
 
-			void init();
+			virtual void init() = 0;
 	};
 }
 #endif

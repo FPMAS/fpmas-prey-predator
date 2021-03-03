@@ -50,39 +50,55 @@ namespace base {
 		}
 	}
 
-	Model::Model(
+	Model::Model() {
+		// Schedules agent execution
+		this->scheduler().schedule(0, 20, this->loadBalancingJob());
+		this->scheduler().schedule(0.1, 1, grow_group.jobs());
+		this->scheduler().schedule(0.2, 1, move_group.jobs());
+		this->scheduler().schedule(0.3, 1, eat_group.jobs());
+		this->scheduler().schedule(0.4, 1, reproduce_group.jobs());
+		this->scheduler().schedule(0.5, 1, die_group.jobs());
+	}
+
+	void Model::init(
 			fpmas::api::model::GridCellFactory<api::Grass>& grass_factory,
 			fpmas::api::model::SpatialAgentFactory<api::Grass>& prey_factory,
 			fpmas::api::model::GridAgentMapping& prey_mapping,
 			fpmas::api::model::SpatialAgentFactory<api::Grass>& predator_factory,
 			fpmas::api::model::GridAgentMapping& predator_mapping
-			) :
-		grid(grass_factory, config::Grid::width, config::Grid::height),
-		prey_factory(prey_factory), prey_mapping(prey_mapping),
-		predator_factory(predator_factory), predator_mapping(predator_mapping)
-	{
-		// Schedules agent execution
-		this->scheduler().schedule(0, 20, this->loadBalancingJob());
-		this->scheduler().schedule(0.1, 1, grow.jobs());
-		this->scheduler().schedule(0.2, 1, move.jobs());
-		this->scheduler().schedule(0.3, 1, eat.jobs());
-		this->scheduler().schedule(0.4, 1, reproduce.jobs());
-		this->scheduler().schedule(0.5, 1, die.jobs());
-	}
+			) {
+		typename VonNeumannGrid<api::Grass>::Builder grid(
+				grass_factory, config::Grid::width, config::Grid::height
+				);
 
-	void Model::init() {
 		// Builds a distributed grid
-		auto cells = this->grid.build(*this);
+		auto cells = grid.build(*this);
 		for(auto grass : cells)
-			grow.add(grass);
+			grow_group.add(grass);
 
 		// Distributed Agent Builder
 		GridAgentBuilder<api::Grass> agent_builder;
 
 		// Initializes preys (distributed process)
-		agent_builder.build(*this, {move, eat, reproduce, die}, this->prey_factory, this->prey_mapping);
+		agent_builder.build(
+				// Build preys in this model
+				*this,
+				// Groups to which preys are added
+				{move_group, eat_group, reproduce_group, die_group},
+				// Used to generate Prey instances
+				prey_factory,
+				// Used to initialize Prey locations
+				prey_mapping);
 
 		// Initializes predators (distributed process)
-		agent_builder.build(*this, {move, eat, reproduce, die}, this->predator_factory, this->predator_mapping);
+		agent_builder.build(
+				// Build predators in this model
+				*this,
+				// Groups to which predators are added
+				{move_group, eat_group, reproduce_group, die_group},
+				// Used to generate Predator instances
+				predator_factory,
+				// Used to initialize Predator locations
+				predator_mapping);
 	}
 }

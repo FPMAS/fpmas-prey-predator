@@ -74,4 +74,30 @@ namespace constrained {
 		PreyPredator::from_json(j, predator);
 		return predator;
 	}
+
+	void Model::init() {
+		ConstrainedGridAgentMapping prey_mapping(
+				config::Grid::width,
+				config::Grid::height,
+				config::ModelConfig::num_preys,
+				1
+				);
+		ConstrainedGridAgentMapping predator_mapping(
+				config::Grid::width,
+				config::Grid::height,
+				config::ModelConfig::num_predators,
+				1
+				);
+
+		base::GrassFactory<Grass> grass_factory;
+		DefaultSpatialAgentFactory<Prey> prey_factory;
+		DefaultSpatialAgentFactory<Predator> predator_factory;
+
+		this->base::Model::init(
+				grass_factory,
+				prey_factory,
+				prey_mapping,
+				predator_factory,
+				predator_mapping);
+	}
 }
