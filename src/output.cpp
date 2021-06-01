@@ -36,7 +36,7 @@ void print_current_config() {
 
 ModelOutput::ModelOutput(fpmas::api::model::Model& model)
 	: FileOutput(config::ModelConfig::model_output_file), DistributedCsvOutput(
-			model.getMpiCommunicator(), 0, this->output_file,
+			model.getMpiCommunicator(), 0, *this,
 			{"time", [&model] () {return model.runtime().currentDate();}},
 			{"grass", [&model] () {
 			std::size_t num_grass = 0;
@@ -64,7 +64,7 @@ GraphOutput::GraphOutput(fpmas::api::model::Model& model)
 	: FileOutput(fpmas::utils::format(
 				config::ModelConfig::graph_output_file,
 				model.getMpiCommunicator().getRank())), DistributedCsvOutput(
-			model.getMpiCommunicator(), this->output_file,
+			model.getMpiCommunicator(), *this,
 			{"time", [&model] () {return model.runtime().currentDate();}},
 			{"local_nodes", [&model] () {return model.graph().getNodes().size();}},
 			{"local_edges", [&model] () {return model.graph().getEdges().size();}},

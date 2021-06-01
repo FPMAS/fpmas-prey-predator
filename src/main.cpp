@@ -63,7 +63,8 @@ int main(int argc, char** argv) {
 		ModelOutput model_output(*model);
 		GraphOutput graph_output(*model);
 		model->scheduler().schedule(
-				fpmas::scheduler::sub_step_end(0), 1, model_output.job());
+				fpmas::scheduler::sub_step_end(0), 1, model_output.job()
+				);
 		model->scheduler().schedule(fpmas::scheduler::sub_step_end(0), 1, graph_output.job());
 		// Optional model breakpoint
 		if(config::Breakpoint::enable)

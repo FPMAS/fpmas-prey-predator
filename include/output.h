@@ -13,13 +13,7 @@ void print_current_config();
 using fpmas::io::DistributedCsvOutput;
 using fpmas::io::Local;
 using fpmas::io::Reduce;
-
-class FileOutput {
-	protected:
-		std::ofstream output_file;
-		FileOutput(std::string filename)
-			: output_file(filename) {}
-};
+using fpmas::io::FileOutput;
 
 class ModelOutput :
 	public FileOutput,
