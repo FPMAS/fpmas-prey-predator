@@ -11,8 +11,11 @@
 namespace classic {
 	class Grass : public base::Grass, public GridCellBase<Grass> {
 		public:
-			// Import constructors
-			using base::Grass::Grass;
+			Grass() = default;
+
+			Grass(bool grown, int grow_count_down)
+				: base::Grass(grown, grow_count_down) {
+				}
 
 			/**
 			 * Uses GridCellBase(fpmas::api::model::DiscretePoint location)
@@ -22,8 +25,6 @@ namespace classic {
 			 * This constructor is intended to be used in an
 			 * fpmas::api::model::GridCellFactory to generate Grass cells.
 			 */
-			//using fpmas::model::GridCellBase<Grass>::GridCellBase;
-
 			Grass(bool grown, int grow_count_down, DiscretePoint location)
 				: base::Grass(grown, grow_count_down), GridCellBase<Grass>(location) {}
 
