@@ -50,6 +50,8 @@ namespace constrained {
 				for(auto group : this->groups())
 					group->add(agent);
 				agent->initLocation(child_location);
+				this->energy() /= 2;
+				agent->energy() = this->energy();
 			}
 		}
 	}

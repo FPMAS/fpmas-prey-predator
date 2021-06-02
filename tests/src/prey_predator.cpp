@@ -68,7 +68,8 @@ TEST_F(BasePreyPredatorTest, die) {
 	ASSERT_THAT(mock_prey_predator->groupIds(), UnorderedElementsAre(MOVE, REPRODUCE, DIE, EAT));
 
 	// Energy goes negative
-	mock_prey_predator->energy() -= 2*mock::config::move_cost;
+	while(mock_prey_predator->energy() > 0)
+		mock_prey_predator->energy() -= mock::config::move_cost;
 
 	this->runtime().execute(die_group.jobs());
 	ASSERT_THAT(move_group.localAgents(), IsEmpty());

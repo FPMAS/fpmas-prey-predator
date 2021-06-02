@@ -65,9 +65,9 @@ namespace classic {
 					Reproduce(mock::config::reproduction_rate),
 					base::PreyPredator<MockReproduce>(mock::config::initial_energy) {}
 
-				DEFAULT_MOCK_SPECIAL_MEMBERS(MockReproduce)
+				DEFAULT_MOCK_SPECIAL_MEMBERS(MockReproduce);
 
-					MOCK_METHOD(void, eat, (), (override));
+				MOCK_METHOD(void, eat, (), (override));
 				MOCK_METHOD(void, move, (), (override));
 				MOCK_METHOD(void, die, (), (override));
 		};
@@ -79,6 +79,7 @@ TEST_F(ClassicPreyPredatorTest, reproduce) {
 
 	MockReproduce* mock_prey_predator = new MockReproduce;
 	this->initAgent(mock_prey_predator);
+	int initial_energy = mock_prey_predator->energy();
 
 	this->runtime().execute(reproduce_group.jobs());
 
@@ -93,6 +94,8 @@ TEST_F(ClassicPreyPredatorTest, reproduce) {
 			[mock_prey_predator] (fpmas::api::model::Agent* agent) -> bool {return agent != mock_prey_predator;}
 			);
 
+	ASSERT_EQ(mock_prey_predator->energy(), initial_energy / 2);
+	ASSERT_EQ(dynamic_cast<api::PreyPredator*>(*new_agent)->energy(), initial_energy / 2);
 	ASSERT_THAT(*new_agent, WhenDynamicCastTo<MockReproduce*>(NotNull()));
 	ASSERT_EQ(dynamic_cast<api::PreyPredator*>(*new_agent)->locationPoint(), fpmas::api::model::DiscretePoint(2, 2));
 	ASSERT_THAT((*new_agent)->groupIds(), UnorderedElementsAre(MOVE, REPRODUCE, DIE, EAT));

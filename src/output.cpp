@@ -8,6 +8,7 @@ void print_current_config() {
 	PRINT_CONFIG(ModelConfig, num_steps);
 	PRINT_CONFIG(ModelConfig, num_preys);
 	PRINT_CONFIG(ModelConfig, num_predators);
+	PRINT_CONFIG(ModelConfig, init_grass_rate);
 	PRINT_CONFIG(ModelConfig, model_output_file);
 	PRINT_CONFIG(ModelConfig, graph_output_file);
 

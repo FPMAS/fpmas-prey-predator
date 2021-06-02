@@ -24,6 +24,8 @@ namespace classic {
 		if(this->random_real(rd) <= reproduction_rate) {
 			//std::cout << this->node()->getId() << " reproduces" << std::endl;
 			api::PreyPredator* agent = this->agentFactory().build();
+			this->energy() /= 2;
+			agent->energy() = this->energy();
 			for(auto group : this->groups())
 				group->add(agent);
 			agent->initLocation(this->locationCell());

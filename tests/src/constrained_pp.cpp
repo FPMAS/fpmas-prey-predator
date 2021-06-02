@@ -144,6 +144,7 @@ TEST_F(ConstrainedPreyPredatorTest, reproduce) {
 
 	MockReproduce* mock_prey_predator = new MockReproduce;
 	this->initAgent(mock_prey_predator);
+	int initial_energy = mock_prey_predator->energy();
 
 	this->runtime().execute(reproduce_group.jobs());
 
@@ -157,6 +158,8 @@ TEST_F(ConstrainedPreyPredatorTest, reproduce) {
 			[mock_prey_predator] (fpmas::api::model::Agent* agent) -> bool {return agent != mock_prey_predator;}
 			);
 
+	ASSERT_EQ(mock_prey_predator->energy(), initial_energy / 2);
+	ASSERT_EQ(dynamic_cast<api::PreyPredator*>(*new_agent)->energy(), initial_energy / 2);
 	ASSERT_THAT(*new_agent, WhenDynamicCastTo<MockReproduce*>(NotNull()));
 	ASSERT_THAT(
 			dynamic_cast<api::PreyPredator*>(*new_agent)->locationPoint(),
