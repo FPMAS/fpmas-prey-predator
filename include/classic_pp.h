@@ -9,7 +9,7 @@
 	classic::Grass::JsonBase
 
 namespace classic {
-	class Grass : public base::Grass, public fpmas::model::GridCellBase<Grass> {
+	class Grass : public base::Grass, public GridCellBase<Grass> {
 		public:
 			// Import constructors
 			using base::Grass::Grass;
@@ -22,7 +22,10 @@ namespace classic {
 			 * This constructor is intended to be used in an
 			 * fpmas::api::model::GridCellFactory to generate Grass cells.
 			 */
-			using fpmas::model::GridCellBase<Grass>::GridCellBase;
+			//using fpmas::model::GridCellBase<Grass>::GridCellBase;
+
+			Grass(bool grown, int grow_count_down, DiscretePoint location)
+				: base::Grass(grown, grow_count_down), GridCellBase<Grass>(location) {}
 
 			static void to_json(nlohmann::json& j, const Grass* grass);
 			static Grass* from_json(const nlohmann::json& j);

@@ -25,9 +25,13 @@ namespace mock {
 }
 
 namespace base {
-	class MockGrass : public Grass, public fpmas::model::GridCellBase<MockGrass> {
-		using Grass::Grass;
-		using fpmas::model::GridCellBase<MockGrass>::GridCellBase;
+	class MockGrass : public Grass, public GridCellBase<MockGrass> {
+		public:
+			using Grass::Grass;
+
+			MockGrass(bool grown, int grow_count_down, DiscretePoint point)
+				: Grass(grown, grow_count_down), GridCellBase<MockGrass>(point) {
+				}
 	};
 
 	class MockPreyPredator :
@@ -44,7 +48,7 @@ namespace base {
 			MOCK_METHOD(void, move, (), (override));
 			MOCK_METHOD(void, reproduce, (), (override));
 			MOCK_METHOD(void, eat, (), (override));
-			MOCK_METHOD(fpmas::model::Neighbors<api::Grass>, neighborCells, (), (override));
+			MOCK_METHOD(Neighbors<api::Grass>, neighborCells, (), (override));
 	};
 
 	class MockPrey :
@@ -60,7 +64,7 @@ namespace base {
 				MOCK_METHOD(void, move, (), (override));
 				MOCK_METHOD(void, reproduce, (), (override));
 				MOCK_METHOD(void, eat, (), (override));
-				MOCK_METHOD(fpmas::model::Neighbors<api::Grass>, neighborCells, (), (override));
+				MOCK_METHOD(Neighbors<api::Grass>, neighborCells, (), (override));
 	};
 }
 #endif

@@ -13,6 +13,7 @@ namespace config {
 	int ModelConfig::num_steps = 100;
 	std::size_t ModelConfig::num_preys = 100;
 	std::size_t ModelConfig::num_predators = 20;
+	double ModelConfig::init_grass_rate = 0.5;
 	Mode ModelConfig::mode = CLASSIC;
 
 	std::string Breakpoint::load_from = "";
@@ -83,6 +84,7 @@ void load_static_config(std::string config_file) {
 	LOAD_FROM_YML(config, ModelConfig, num_steps);
 	LOAD_FROM_YML(config, ModelConfig, num_preys);
 	LOAD_FROM_YML(config, ModelConfig, num_predators);
+	LOAD_FROM_YML(config, ModelConfig, init_grass_rate);
 	LOAD_FROM_YML(config, ModelConfig, model_output_file);
 	LOAD_FROM_YML(config, ModelConfig, graph_output_file);
 	LOAD_FROM_YML(config, ModelConfig, mode);

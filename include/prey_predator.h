@@ -59,6 +59,8 @@ namespace base {
 
 		public:
 			Grass() : Grass(true, config::Grass::growing_rate) {}
+
+			//Grass(bool grown) : Grass(grown, config::Grass::growing_rate) {}
 			
 			/**
 			 * Base Grass constructor.
@@ -174,10 +176,25 @@ namespace base {
 
 	template<typename GrassType>
 		class GrassFactory : public fpmas::api::model::GridCellFactory<api::Grass> {
-			api::Grass* build(fpmas::api::model::DiscretePoint point) {
-				return new GrassType(point);
-			}
+			private:
+				double grown_rate;
+				static fpmas::random::DistributedGenerator<> gen;
+				std::bernoulli_distribution grown;
+				std::uniform_int_distribution<int> grow_count_down;
+
+			public:
+				GrassFactory(double grown_rate) :
+					grown(grown_rate), grow_count_down(1, config::Grass::growing_rate) {}
+
+				api::Grass* build(fpmas::api::model::DiscretePoint point) override {
+					bool _grown = grown(gen);
+					if(_grown)
+						return new GrassType(_grown, config::Grass::growing_rate, point);
+					return new GrassType(_grown, grow_count_down(gen), point);
+				}
 		};
+	template<typename GrassType>
+		fpmas::random::DistributedGenerator<> GrassFactory<GrassType>::gen;
 
 	class ModelBase : public fpmas::model::GridModel<fpmas::synchro::HardSyncMode, api::Grass> {
 		protected:

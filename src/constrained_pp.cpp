@@ -89,7 +89,7 @@ namespace constrained {
 				1
 				);
 
-		base::GrassFactory<Grass> grass_factory;
+		base::GrassFactory<Grass> grass_factory(config::ModelConfig::init_grass_rate);
 		DefaultSpatialAgentFactory<Prey> prey_factory;
 		DefaultSpatialAgentFactory<Predator> predator_factory;
 

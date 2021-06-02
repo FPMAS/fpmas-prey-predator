@@ -7,6 +7,7 @@ ModelConfig:
     num_steps: 50
     num_preys: 50
     num_predators: 20
+    init_grass_rate: 0.5
     model_output_file: model.csv
     graph_output_file: graph.%r.csv
 

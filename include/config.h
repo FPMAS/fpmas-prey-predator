@@ -18,6 +18,7 @@ namespace config {
 		extern int num_steps;
 		extern std::size_t num_preys;
 		extern std::size_t num_predators;
+		extern double init_grass_rate;
 		extern std::string model_output_file;
 		extern std::string graph_output_file;
 		extern Mode mode;
@@ -32,22 +33,22 @@ namespace config {
 		extern fpmas::api::scheduler::Period period;
 	}
 
-	struct Grass {
-		static int growing_rate;
+	namespace Grass {
+		extern int growing_rate;
 	};
 
-	struct Prey {
-		static float reproduction_rate;
-		static int initial_energy;
-		static int move_cost;
-		static int energy_gain;
+	namespace Prey {
+		extern float reproduction_rate;
+		extern int initial_energy;
+		extern int move_cost;
+		extern int energy_gain;
 	};
 
-	struct Predator {
-		static float reproduction_rate;
-		static int initial_energy;
-		static int move_cost;
-		static int energy_gain;
+	namespace Predator {
+		extern float reproduction_rate;
+		extern int initial_energy;
+		extern int move_cost;
+		extern int energy_gain;
 	};
 }
 

@@ -13,7 +13,7 @@ namespace constrained {
 		PREY, PREDATOR
 	};
 
-	class Grass : public base::Grass, public fpmas::model::GridCellBase<Grass> {
+	class Grass : public base::Grass, public GridCellBase<Grass> {
 	public:
 		struct State {
 			bool prey;
@@ -30,7 +30,10 @@ namespace constrained {
 
 		// Import constructors
 		using base::Grass::Grass;
-		using fpmas::model::GridCellBase<Grass>::GridCellBase;
+
+		Grass(bool grown, int grow_count_down, DiscretePoint point)
+			: base::Grass(grown, grow_count_down), GridCellBase<Grass>(point) {
+			}
 
 		/**
 		 * Base Grass constructor.

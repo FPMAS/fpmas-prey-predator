@@ -7,7 +7,7 @@
 template<typename GrassType>
 class PreyPredatorTest : public ::testing::Test, public base::ModelBase {
 	protected:
-		base::GrassFactory<GrassType> grass_factory;
+		base::GrassFactory<GrassType> grass_factory {1.0};
 		typename fpmas::model::VonNeumannGrid<api::Grass>::Builder grid {
 			grass_factory, 5, 5};
 
