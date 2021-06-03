@@ -24,6 +24,11 @@ namespace config {
 		extern Mode mode;
 	}
 
+	namespace LoadBalancing {
+		extern bool enable;
+		extern fpmas::api::scheduler::TimeStep period;
+	}
+
 	namespace Breakpoint {
 		extern std::string load_from;
 		extern bool enable;

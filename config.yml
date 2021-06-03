@@ -11,6 +11,10 @@ ModelConfig:
     model_output_file: model.csv
     graph_output_file: graph.%r.csv
 
+LoadBalancing:
+    enable: true
+    period: 20
+
 Breakpoint:
     load_from: ""
     enable: false

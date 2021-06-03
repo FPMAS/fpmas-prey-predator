@@ -52,7 +52,8 @@ namespace base {
 
 	Model::Model() {
 		// Schedules agent execution
-		this->scheduler().schedule(0, 20, this->loadBalancingJob());
+		if(config::LoadBalancing::enable)
+			this->scheduler().schedule(0, config::LoadBalancing::period, this->loadBalancingJob());
 		this->scheduler().schedule(0.1, 1, grow_group.jobs());
 		this->scheduler().schedule(0.2, 1, move_group.jobs());
 		this->scheduler().schedule(0.3, 1, eat_group.jobs());

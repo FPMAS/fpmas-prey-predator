@@ -16,6 +16,9 @@ namespace config {
 	double ModelConfig::init_grass_rate = 0.5;
 	Mode ModelConfig::mode = CLASSIC;
 
+	bool LoadBalancing::enable = true;
+	fpmas::api::scheduler::TimeStep LoadBalancing::period = 20;
+
 	std::string Breakpoint::load_from = "";
 	bool Breakpoint::enable = false;
 	std::string Breakpoint::file = "breakpoint.%r.%t.msgpack";
@@ -88,6 +91,9 @@ void load_static_config(std::string config_file) {
 	LOAD_FROM_YML(config, ModelConfig, model_output_file);
 	LOAD_FROM_YML(config, ModelConfig, graph_output_file);
 	LOAD_FROM_YML(config, ModelConfig, mode);
+
+	LOAD_FROM_YML(config, LoadBalancing, enable);
+	LOAD_FROM_YML(config, LoadBalancing, period);
 
 	LOAD_FROM_YML(config, Breakpoint, load_from);
 	LOAD_FROM_YML(config, Breakpoint, enable);

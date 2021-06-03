@@ -12,6 +12,9 @@ void print_current_config() {
 	PRINT_CONFIG(ModelConfig, model_output_file);
 	PRINT_CONFIG(ModelConfig, graph_output_file);
 
+	PRINT_CONFIG(LoadBalancing, enable);
+	PRINT_CONFIG(LoadBalancing, period);
+
 	PRINT_CONFIG(Breakpoint, load_from);
 	PRINT_CONFIG(Breakpoint, enable);
 	PRINT_CONFIG(Breakpoint, file);
